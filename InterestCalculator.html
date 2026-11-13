@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interest Calculator</title>
+<style>
+:root{
+  --page:#f7f7f5; --surface:#fff; --line:#e6e4df; --line-strong:#d4d1ca;
+  --ink:#1c1c1a; --muted:#6b6860; --accent:#1f4d3a; --accent-hover:#183c2d;
+  --focus:rgba(31,77,58,.28); --good:#1d6b43; --warn:#8a5a00; --bad:#a3321f;
+}
+*{box-sizing:border-box}
+html{font-size:17px}
+body{margin:0;background:var(--page);color:var(--ink);line-height:1.5;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+[hidden]{display:none!important}
+.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+
+/* top bar */
+.topbar{background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1360px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;gap:12px}
+.brand{font-weight:600;font-size:18px;letter-spacing:-.01em;margin-right:auto}
+.menu-wrap{position:relative}
+.pop{position:absolute;top:calc(100% + 8px);right:0;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;box-shadow:0 8px 24px rgba(28,28,26,.08);z-index:20;min-width:260px;padding:8px}
+.people-pop{width:340px}
+.pop .item{display:block;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:10px 12px;cursor:pointer;min-height:44px}
+.pop .item:hover{background:#f3f2ee}
+.pop .item.current{font-weight:600}
+.pop .item small{display:block;color:var(--muted);font-weight:400;font-size:14px}
+.pop .empty{padding:10px 12px;color:var(--muted)}
+.pop hr{border:0;border-top:1px solid var(--line);margin:6px 0}
+.pop .danger{color:var(--bad)}
+.pop .muted-red{color:#a2503f}
+.mbox .row.split{justify-content:space-between;flex-wrap:wrap}
+.mbox .row .grp{display:flex;gap:12px;flex-wrap:wrap}
+.people-list{max-height:320px;overflow:auto;margin-top:6px}
+
+/* layout */
+main{max-width:1360px;margin:0 auto;padding:32px 24px 64px;display:grid;grid-template-columns:1fr;gap:32px;align-items:start}
+#mainwrap{container-type:inline-size}
+/* two columns only when the page itself is wide enough for the loans list (also correct under browser zoom) */
+@container (min-width:1320px){main{grid-template-columns:minmax(0,1fr) 560px;column-gap:24px}.result-col{position:sticky;top:24px}}
+@supports not (container-type:inline-size){@media(min-width:1320px){main{grid-template-columns:minmax(0,1fr) 560px;column-gap:24px}.result-col{position:sticky;top:24px}}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(28,28,26,.04)}
+.sec{padding:24px 28px}
+.sec+.sec{margin-top:16px}
+.sec h2{margin:0 0 16px;font-size:15px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:10px}
+.sec h2 .n{display:inline-grid;place-items:center;width:24px;height:24px;background:var(--accent);border-radius:50%;font-size:13px;font-weight:600;letter-spacing:0;color:#fff}
+.sec h2 .aux{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:400;font-size:15px}
+
+/* fields */
+label.f{display:block;font-size:15px;color:var(--muted);font-weight:500}
+label.f>span.lbl{display:block;margin-bottom:6px}
+input[type=text],input[type=number],select{width:100%;height:44px;padding:0 12px;border:1px solid var(--line-strong);
+  border-radius:8px;background:#fff;color:var(--ink);font-size:17px}
+select{appearance:none;padding-right:34px;background-image:linear-gradient(45deg,transparent 50%,#6b6860 50%),linear-gradient(135deg,#6b6860 50%,transparent 50%);
+  background-position:calc(100% - 18px) 19px,calc(100% - 13px) 19px;background-size:5px 5px;background-repeat:no-repeat}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--focus)}
+input.bad{border-color:var(--bad)}
+.hint{font-size:14px;color:var(--bad);position:absolute;left:0;top:100%;margin-top:2px;white-space:nowrap}
+label.f{position:relative}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:end}
+@media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr}}
+.datebox{position:relative;display:block}
+.datebox input[type=text]{padding-right:44px}
+.cal{position:absolute;right:4px;top:4px;width:36px;height:36px;border:0;background:none;border-radius:6px;cursor:pointer;color:var(--muted);display:grid;place-items:center}
+.cal:hover{background:#f3f2ee;color:var(--ink)}
+.cal[aria-expanded=true]{background:#f3f2ee;color:var(--ink)}
+.calpop{position:absolute;z-index:40;width:360px;max-width:calc(100vw - 16px);background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;box-shadow:0 12px 32px rgba(28,28,26,.14),0 2px 6px rgba(28,28,26,.06);padding:12px}
+.calhead{display:grid;grid-template-columns:44px minmax(0,1fr) 92px 44px;gap:6px;align-items:center;margin-bottom:8px}
+.calhead select{height:44px;padding-left:10px;font-size:16px}
+.calnav{height:44px;width:44px;border:1px solid var(--line-strong);background:#fff;border-radius:8px;cursor:pointer;font-size:22px;line-height:1;color:var(--ink);display:grid;place-items:center;padding:0}
+.calnav:hover{background:#f3f2ee}
+.calwd,.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.calwd span{text-align:center;font-size:13px;font-weight:600;color:var(--muted);padding:4px 0 6px;letter-spacing:.02em}
+.calgrid{grid-auto-rows:44px}
+.calday{height:44px;width:100%;min-width:44px;border:1px solid transparent;background:none;border-radius:8px;cursor:pointer;font-size:17px;font-variant-numeric:tabular-nums;color:var(--ink);padding:0}
+.calday:hover{background:#eef3f0}
+.calday.today{border-color:var(--accent)}
+.calday.sel,.calday.sel:hover{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.calday:focus-visible,.calnav:focus-visible,.calfoot .btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--focus)}
+.calfoot{display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.calfoot .btn{height:44px;color:var(--accent);font-weight:600}
+details.more{margin-top:20px}
+details.more summary{cursor:pointer;color:var(--muted);font-size:15px;list-style:none;display:inline-block;padding:4px 0}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::before{content:"+ "}
+details.more[open] summary::before{content:"\2212  "}
+details.more .body{margin-top:12px;max-width:50%}
+@media(max-width:640px){details.more .body{max-width:none}}
+
+/* buttons */
+.btn{height:44px;padding:0 18px;border-radius:8px;border:1px solid var(--line-strong);background:#fff;color:var(--ink);font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#f3f2ee}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-hover)}
+.btn.ghost{border-color:transparent;background:none;color:var(--ink)}
+.btn.ghost:hover{background:#f3f2ee}
+.btn.sm{height:38px;padding:0 14px;font-size:15px}
+.btn:focus-visible,.item:focus-visible,.cal:focus-visible,summary:focus-visible{outline:none;box-shadow:0 0 0 3px var(--focus)}
+
+/* loans: entry form + compact list */
+.lform{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr) minmax(0,1.3fr);gap:12px 12px;align-items:start;padding-bottom:20px;border-bottom:1px solid var(--line-strong)}
+.lform .note{grid-column:1 / span 2}
+.lform .acts{display:flex;align-items:center;gap:12px;height:44px;align-self:end}
+.lform .acts .btn.primary{min-width:96px}
+.lform.editing{background:#f4f8f5;margin:-8px -12px 0;padding:8px 12px 20px;border-radius:8px}
+.cancel{border:0;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:15px;padding:6px 4px}
+.cancel:hover{color:var(--ink)}
+.cancel:focus-visible,.lact .btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--focus)}
+.ferr{display:block;font-size:14px;color:var(--bad);margin-top:4px;line-height:1.3}
+.lhead,.lrow{display:grid;grid-template-columns:84px minmax(0,1fr) 106px 106px 126px 96px;column-gap:8px;align-items:center}
+.lhead{padding:14px 0 6px;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+.lhead .r{text-align:right}
+.lrow{padding:6px 0;min-height:48px;border-top:1px solid var(--line);font-size:15px}
+.lhead+.lrow{border-top-color:var(--line-strong)}
+.lrow .ld{color:var(--muted);white-space:nowrap}
+.lrow .lt{min-width:0;overflow-wrap:anywhere}
+.lrow .lt .ln{display:block;color:var(--muted);font-size:14px;line-height:1.35;margin-top:2px}
+.lrow.rep .num{color:var(--good)}
+.lrow .lmsg{grid-column:span 3;text-align:right;color:var(--warn);font-size:14px;line-height:1.3}
+.lrow .lmsg.lmsg2{grid-column:span 2}
+.lrow.editing{background:#f4f8f5;box-shadow:inset 3px 0 0 var(--accent);margin:0 -8px;padding-left:8px;padding-right:8px}
+.lact{display:flex;gap:0;justify-content:flex-end;align-items:center}
+.lact .btn{height:32px;padding:0 6px;font-size:14px;color:var(--muted)}
+.lact .btn:hover{color:var(--ink)}
+.lact .btn.danger:hover{background:#f6e9e6;color:var(--bad)}
+.lrow.confirming .lact{grid-column:1 / -1;padding:6px 0 4px;gap:10px}
+.lrow.confirming .lact .ask{margin-right:4px;font-size:15px}
+.lact .btn.yes{background:var(--bad);border-color:var(--bad);color:#fff;height:36px;padding:0 14px;font-size:15px}
+.lact .btn.yes:hover{background:#862a1a}
+.lact .btn.no{height:36px;padding:0 14px;font-size:15px;color:var(--ink);border-color:var(--line-strong)}
+.empty-note{color:var(--muted);padding:16px 0 0}
+@media(max-width:700px){
+  .lform{grid-template-columns:1fr 1fr}.lform .type{grid-column:1 / -1}.lform .note{grid-column:1 / -1}
+  .lhead{display:none}
+  .lrow{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:2px;padding:10px 0}
+  .lrow .lt{grid-column:span 2}.lrow .lmsg,.lrow .lmsg.lmsg2{grid-column:1 / -1;text-align:left}
+  .lrow .lact{grid-column:1 / -1}
+}
+
+/* in-page confirm modal */
+.modal{position:fixed;inset:0;background:rgba(28,28,26,.28);display:grid;place-items:center;z-index:50;padding:16px}
+.mbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px;max-width:440px;width:100%;box-shadow:0 12px 40px rgba(28,28,26,.14)}
+.mbox h3{margin:0 0 8px;font-size:18px}
+.mbox p{margin:0;color:var(--muted)}
+.mbox .row{display:flex;justify-content:flex-end;gap:12px;margin-top:22px}
+.btn.danger-fill{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn.danger-fill:hover{background:#862a1a}
+
+/* result */
+.result{padding:28px 18px}
+.result .who{font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0}
+.result .meta{color:var(--muted);font-size:15px;margin:2px 0 20px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{font-size:13.5px;font-weight:600;color:var(--muted);text-align:left;padding:0 0 10px;border-bottom:1px solid var(--line-strong);letter-spacing:.02em}
+th.r{text-align:right}
+td{padding:12px 0;border-bottom:1px solid var(--line);vertical-align:top}
+td+td,th+th{padding-left:6px}
+td.sub{color:var(--muted);white-space:nowrap}
+tr.rep td.num{color:var(--good)}
+tr.flag td.msg{color:var(--warn);font-size:14.5px;text-align:right}
+.type small{display:block;color:var(--muted);font-size:13px;line-height:1.3;overflow-wrap:break-word}
+.none{color:var(--muted);padding:20px 0}
+.totals{margin-top:20px}
+.trow{display:flex;justify-content:space-between;padding:6px 0;color:var(--muted)}
+.trow b{font-weight:500;color:var(--ink)}
+.due{margin-top:12px;padding-top:20px;border-top:1px solid var(--line-strong);display:flex;justify-content:space-between;align-items:baseline;gap:16px}
+.due .label{font-weight:500}
+.due .amt{font-size:32px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.due .amt .cur{font-weight:400;color:var(--muted);margin-right:4px}
+.actions{margin-top:24px;display:flex;gap:12px}
+.printonly{display:none}
+.warnbar{max-width:1360px;margin:12px auto 0;padding:10px 24px;color:var(--warn)}
+
+/* print history */
+.hview{max-width:1360px;margin:0 auto;padding:32px 24px 64px}
+.hcard{padding:24px 28px}
+.hbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.hbar h2{margin:0;font-size:15px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.hbar .grow{flex:1 1 auto}
+.hbar input[type=text]{width:280px;max-width:100%}
+.hback{border:0;background:none;color:var(--accent);font-weight:600;cursor:pointer;padding:6px 4px;border-radius:6px}
+.hback:hover{text-decoration:underline}
+.hback:focus-visible{outline:none;box-shadow:0 0 0 3px var(--focus)}
+.htbl{width:100%;border-collapse:collapse;font-size:15px}
+.htbl th{padding:0 0 10px;white-space:nowrap}
+.htbl td{padding:12px 0;vertical-align:middle}
+.htbl td+td,.htbl th+th{padding-left:14px}
+.htbl td.nm{overflow-wrap:anywhere}
+.htbl td small{display:block;color:var(--muted);font-size:13px;line-height:1.3}
+.htbl td.sub{white-space:nowrap}
+.htbl td.hact{text-align:right;white-space:nowrap}
+.htbl td.hconf{text-align:right}
+.htbl td.hconf .ask{margin-right:12px}
+.htbl td.hconf .btn+.btn{margin-left:8px}
+.htbl .btn.yes{background:var(--bad);border-color:var(--bad);color:#fff;height:36px;padding:0 14px;font-size:15px}
+.htbl .btn.no{height:36px;padding:0 14px;font-size:15px;border-color:var(--line-strong)}
+.htbl .btn.ghost{height:32px;padding:0 8px;font-size:14px;color:var(--muted)}
+.htbl .btn.ghost.danger:hover{background:#f6e9e6;color:var(--bad)}
+.hempty{color:var(--muted);padding:24px 0 8px}
+.lastp{margin-top:10px;font-size:14px;color:var(--muted)}
+.hscroll{overflow-x:auto}
+
+/* print area (hidden on screen) */
+.printarea{display:none}
+.pa-pt{font-size:22px;font-weight:600;margin:0 0 14px;letter-spacing:-.01em}
+.pa-name{font-size:18px;font-weight:600}
+.pa-phone{color:#000;margin-top:2px}
+.pa-meta{margin-top:6px}
+.pa-tbl{margin-top:20px}
+.pa-tot{margin-top:24px;border-top:1px solid #000;padding-top:10px}
+.pa-tot .trow{padding:5px 0;color:#000}
+.pa-due{margin-top:8px;padding-top:12px;border-top:1px solid #000;display:flex;justify-content:space-between;align-items:baseline;gap:16px}
+.pa-due .amt{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pa-foot{margin-top:36px;font-size:11px;color:#444}
+.printopt{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--ink);cursor:pointer;min-height:44px}
+.printopt input{width:20px;height:20px;accent-color:var(--accent);margin:0;cursor:pointer}
+
+/* print */
+@page{size:A4 portrait;margin:18mm}
+@media print{
+  html{font-size:14px}
+  body{background:#fff;color:#000}
+  .topbar,.noprint,.warnbar,.modal,.calpop,#mainwrap,.hview{display:none!important}
+  .printarea{display:block}
+  table{font-size:13px}
+  th{color:#000;border-bottom:1px solid #000}
+  td{border-bottom:1px solid #999}
+  td.sub{color:#000}
+  tr.rep td.num{color:#000}
+  .type small{color:#000}
+}
+</style>
+</head>
+<body>
+<header class="topbar noprint"><div class="topbar-in">
+  <div class="brand">Interest Calculator</div>
+  <div class="menu-wrap">
+    <button class="btn" id="peopleBtn" aria-haspopup="true" aria-expanded="false">People</button>
+    <div class="pop people-pop" id="peoplePop" hidden>
+      <input type="text" id="peopleSearch" placeholder="Search by name" aria-label="Search people" autocomplete="off">
+      <div class="people-list" id="peopleList"></div>
+    </div>
+  </div>
+  <button class="btn" id="historyBtn" data-testid="history-btn">History</button>
+  <button class="btn primary" id="newPerson" data-testid="new-person">+ New person</button>
+  <div class="menu-wrap">
+    <button class="btn ghost" id="menuBtn" data-testid="menu-more" aria-haspopup="true" aria-expanded="false" aria-label="More">More</button>
+    <div class="pop" id="menuPop" hidden>
+      <button class="item" id="backupBtn">Backup all data</button>
+      <button class="item" id="restoreBtn">Restore from backup</button>
+      <hr>
+      <button class="item danger" id="delPerson">Delete this person</button>
+      <hr>
+      <button class="item danger muted-red" id="startFresh" data-testid="start-fresh">Start fresh (delete everything)</button>
+    </div>
+  </div>
+  <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+</div></header>
+<div class="warnbar noprint" id="storageWarn" hidden>Saving is not available in this browser, so changes will be lost when you close the page. Use Backup to keep a copy.</div>
+
+<div id="mainwrap"><main>
+  <div class="form-col noprint">
+    <section class="card sec">
+      <h2><span class="n">1</span>Person</h2>
+      <div class="grid2">
+        <label class="f"><span class="lbl">Name</span><input type="text" id="pname" data-testid="person-name" autocomplete="off" placeholder="Full name"></label>
+        <label class="f"><span class="lbl">Phone or notes (optional)</span><input type="text" id="pphone" data-testid="person-phone" autocomplete="off"></label>
+      </div>
+    </section>
+
+    <section class="card sec">
+      <h2><span class="n">2</span>Interest terms</h2>
+      <div class="grid3">
+        <label class="f"><span class="lbl">Calculate up to</span>
+          <span class="datebox"><input type="text" id="calcDate" data-testid="calc-date" inputmode="numeric" placeholder="dd-mm-yyyy" autocomplete="off">
+          <button type="button" class="cal" data-testid="cal-btn" aria-label="Pick date from calendar" aria-haspopup="dialog" aria-expanded="false" data-for="calcDate"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></button></span>
+          <div class="hint" id="calcHint"></div></label>
+        <label class="f"><span class="lbl">Interest per month (%)</span><input type="text" id="roi" data-testid="roi" inputmode="decimal" autocomplete="off"></label>
+        <label class="f"><span class="lbl">Add interest to principal every (months)</span><input type="text" id="comp" data-testid="comp" inputmode="decimal" autocomplete="off"></label>
+      </div>
+      <details class="more"><summary>More options</summary>
+        <div class="body"><label class="f"><span class="lbl">Allowance (months)</span><input type="text" id="approx" data-testid="approx" inputmode="decimal" autocomplete="off"></label></div>
+      </details>
+    </section>
+
+    <section class="card sec">
+      <h2><span class="n">3</span>Loans <span class="aux" id="loanCount"></span></h2>
+      <div class="lform" id="loanForm">
+        <label class="f"><span class="lbl">Date</span>
+          <span class="datebox"><input type="text" id="lDate" data-testid="loan-date" inputmode="numeric" placeholder="dd-mm-yyyy" autocomplete="off">
+          <button type="button" class="cal" data-testid="cal-btn" aria-label="Pick date from calendar" aria-haspopup="dialog" aria-expanded="false" data-for="lDate"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></button></span></label>
+        <label class="f"><span class="lbl">Amount (&#8377;)</span><input type="text" id="lAmount" data-testid="loan-amount" inputmode="decimal" autocomplete="off"></label>
+        <label class="f type"><span class="lbl">Type</span><select id="lType" data-testid="loan-type"><option value="loan">Loan given</option><option value="repayment">Repayment received</option></select></label>
+        <label class="f note"><span class="lbl">Note (optional)</span><input type="text" id="lNote" data-testid="loan-note" autocomplete="off"></label>
+        <div class="acts"><button type="button" class="btn primary" id="lAdd" data-testid="add-loan">Add</button><span id="lCancelSlot"></span></div>
+      </div>
+      <div id="loans"></div>
+    </section>
+  </div>
+
+  <div class="result-col">
+    <section class="card result" id="result" aria-live="polite">
+      <h3 class="who" id="rWho"></h3>
+      <div class="meta" id="rMeta"></div>
+      <div id="rTable"></div>
+      <div class="totals">
+        <div class="trow"><span>Total principal</span><b class="num" data-testid="total-principal" id="tP">0.00</b></div>
+        <div class="trow"><span>Total interest</span><b class="num" data-testid="total-interest" id="tI">0.00</b></div>
+        <div class="due"><span class="label" id="dueLabel">Amount due</span><span class="amt"><span class="cur">&#8377;</span><span data-testid="amount-due" id="tD">0.00</span></span></div>
+      </div>
+      <div class="actions" style="align-items:center;flex-wrap:wrap;gap:8px 20px"><button class="btn primary" id="printBtn" data-testid="print-btn">Print statement</button>
+        <label class="printopt"><input type="checkbox" id="incBreak" data-testid="print-include-breakdown">Include loan-wise breakdown</label></div>
+      <div id="lastPrintedSlot"></div>
+    </section>
+  </div>
+</main></div>
+
+<section class="hview noprint" id="historyView" data-testid="history-view" hidden>
+  <div class="card hcard">
+    <div class="hbar">
+      <button type="button" class="hback" id="historyBack" data-testid="history-back">&larr; Back</button>
+      <h2>Print history <span id="hCount" style="text-transform:none;letter-spacing:0;font-weight:400"></span></h2>
+      <span class="grow"></span>
+      <input type="text" id="historySearch" data-testid="history-search" placeholder="Search by name" aria-label="Search history by name" autocomplete="off">
+      <button type="button" class="btn primary" id="historyExport" data-testid="history-export">Download as Excel (CSV)</button>
+    </div>
+    <div class="hscroll" id="historyBody"></div>
+  </div>
+</section>
+
+<div class="printarea" id="printArea" data-testid="print-area" aria-hidden="true"></div>
+
+
+<script id="calc-engine">
+/* Pure calculation engine: no DOM access. Matches the Excel "Inputs" sheet. */
+function parseISO(s) {
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s == null ? '' : s).trim());
+  return m ? { y: +m[1], m: +m[2], d: +m[3] } : null;
+}
+function numOrZero(v) {
+  if (v === null || v === undefined || v === '') return 0;
+  var n = Number(v);
+  return isFinite(n) ? n : 0;
+}
+function computeRow(txn, settings) {
+  var debit = numOrZero(txn && txn.debit), credit = numOrZero(txn && txn.credit);
+  var amt = credit - debit;
+  var hasAmt = debit !== 0 || credit !== 0;
+  var dt = parseISO(txn && txn.date);
+  if (!hasAmt && !dt) return { amt: 0, T: null, V: null, W: null, interest: 0, status: 'empty' };
+  if (!dt) return { amt: amt, T: null, V: null, W: null, interest: 0, status: 'nodate' };
+  var cd = parseISO(settings.calcDate);
+  if (!cd) return { amt: amt, T: null, V: null, W: null, interest: 0, status: 'nodate' };
+  var roi = Number(settings.roi), comp = Number(settings.comp), approx = Number(settings.approx) || 0;
+  var T = (cd.y - dt.y) * 12 + (cd.m - dt.m) + (cd.d - dt.d) / 30;
+  if (T < 0) return { amt: amt, T: T, V: 0, W: 0, interest: 0, status: 'future' };
+  if (T === 0) return { amt: amt, T: 0, V: 0, W: 0, interest: 0, status: 'ok' };
+  var mod = T - comp * Math.floor(T / comp);
+  var U = mod > approx ? 1 : 0;
+  var V = U ? Math.trunc(T / comp) : Math.trunc(T / comp) - 1;
+  var W = T - V * comp;
+  var interest = amt * Math.pow(1 + roi * comp / 100, V) * (1 + roi * W / 100) - amt;
+  return { amt: amt, T: T, V: V, W: W, interest: interest, status: 'ok' };
+}
+function computeAll(txns, settings) {
+  var rows = [], principal = 0, interest = 0;
+  for (var i = 0; i < txns.length; i++) {
+    var r = computeRow(txns[i], settings);
+    rows.push(r);
+    if (r.status === 'ok' || r.status === 'future') { principal += r.amt; interest += r.interest; }
+  }
+  var balance = principal + interest;
+  return {
+    rows: rows, principal: principal, interest: interest, balance: balance,
+    principalSide: principal < 0 ? 'Dr' : 'Cr',
+    interestSide: interest < 0 ? 'Dr' : 'Cr',
+    balanceSide: balance < 0 ? 'Dr' : 'Cr'
+  };
+}
+if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
+</script>
+<script>
+(function () {
+  'use strict';
+  var KEY = 'interestCalculator.v2', OLD_KEY = 'interestCalculator.v1';
+  var state, storageOK = true;
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- helpers ---------- */
+  function uid() { return 'id' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function p2(n) { return (n < 10 ? '0' : '') + n; }
+  function todayISO() { var d = new Date(); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
+  function isoToDisp(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? m[3] + '-' + m[2] + '-' + m[1] : ''; }
+  function dispToISO(t) {
+    var m = /^\s*(\d{1,2})[-\/.\s](\d{1,2})[-\/.\s](\d{2}|\d{4})\s*$/.exec(t || '');
+    if (!m) return null;
+    var d = +m[1], mo = +m[2], y = +m[3];
+    if (m[3].length === 2) y += 2000;
+    if (mo < 1 || mo > 12 || y < 1900 || y > 2200 || d < 1 || d > new Date(y, mo, 0).getDate()) return null;
+    return y + '-' + p2(mo) + '-' + p2(d);
+  }
+  function fmt(n) { return Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function signed(n) { var r = Math.round(n * 100) / 100; return (r < 0 ? '−' : '') + fmt(n); }
+  function parseMoney(t) {
+    var s = String(t == null ? '' : t).replace(/[,\s₹]/g, '');
+    if (s === '') return null;
+    var n = Number(s);
+    return isFinite(n) && n >= 0 ? n : NaN;
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function numStr(n) { return String(n); }
+
+  /* ---------- data ---------- */
+  function newPerson(last) {
+    return { id: uid(), name: '', phone: '', calcDate: todayISO(),
+      roi: last ? last.roi : 1.25, comp: last ? last.comp : 6, approx: 0, entries: [] };
+  }
+  function seed() {
+    var p = newPerson();
+    p.name = 'Sample Person (example)'; p.calcDate = '2026-11-01';
+    p.entries = [
+      { date: '2026-02-10', type: 'loan', amount: 70000, note: '' },
+      { date: '2026-02-10', type: 'loan', amount: 70000, note: '' }
+    ];
+    return { version: 2, initialized: true, currentId: p.id, last: { roi: 1.25, comp: 6 }, people: [p], history: [] };
+  }
+  function migrateV1(old) {
+    var st = { version: 2, currentId: null, last: { roi: +(old.settings && old.settings.roi) || 1.25, comp: +(old.settings && old.settings.comp) || 6 }, people: [] };
+    var ap = old.settings && isFinite(+old.settings.approx) ? +old.settings.approx : 0;
+    old.accounts.forEach(function (a) {
+      var p = newPerson(st.last);
+      p.id = a.id || p.id; p.name = a.name || ''; p.phone = a.folio || '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(a.calcDate || '')) p.calcDate = a.calcDate;
+      p.approx = ap;
+      (a.txns || []).forEach(function (t) {
+        var d = +t.debit > 0, c = +t.credit > 0;
+        if (!d && !c && !t.date) return;
+        p.entries.push({ date: /^\d{4}-\d{2}-\d{2}$/.test(t.date || '') ? t.date : '',
+          type: d ? 'loan' : (c ? 'repayment' : 'loan'), amount: d ? +t.debit : (c ? +t.credit : null), note: t.particulars || '' });
+      });
+      st.people.push(p);
+    });
+    if (!st.people.length) return null;
+    st.currentId = old.currentId && st.people.some(function (p) { return p.id === old.currentId; }) ? old.currentId : st.people[0].id;
+    return st;
+  }
+  function normalise(s) {
+    if (!s || !Array.isArray(s.people)) return null;
+    var hasHist = Array.isArray(s.history) && s.history.length > 0;
+    if (!s.people.length) {
+      /* a saved state that was initialised (flag) or has history is never re-seeded */
+      if (!s.initialized && !hasHist) return null;
+      s.people = [newPerson(s.last)];
+    }
+    s.initialized = true; /* any saved state with people or history counts as initialised (older versions had no flag) */
+    s.last = s.last || { roi: 1.25, comp: 6 };
+    s.history = (Array.isArray(s.history) ? s.history : []).filter(function (h) { return h && typeof h === 'object'; }).map(function (h) {
+      var pm = h.periodMonths == null || h.periodMonths === '' || !isFinite(+h.periodMonths) ? null : +h.periodMonths;
+      return { id: h.id || uid(), printedAt: typeof h.printedAt === 'string' ? h.printedAt : '', personId: h.personId || '', name: String(h.name || ''), phone: String(h.phone || ''),
+        calcDate: /^\d{4}-\d{2}-\d{2}$/.test(h.calcDate || '') ? h.calcDate : '', periodMonths: pm,
+        principal: Math.abs(+h.principal) || 0, interest: Math.abs(+h.interest) || 0, amountDue: Math.abs(+h.amountDue) || 0,
+        side: h.side === 'payable to' ? 'payable to' : 'due from', breakdownIncluded: !!h.breakdownIncluded, entries: Math.max(0, Math.floor(+h.entries) || 0) };
+    });
+    s.people.forEach(function (p) {
+      p.id = p.id || uid(); p.name = p.name || ''; p.phone = p.phone || '';
+      p.calcDate = /^\d{4}-\d{2}-\d{2}$/.test(p.calcDate || '') ? p.calcDate : todayISO();
+      p.roi = isFinite(+p.roi) ? +p.roi : 1.25; p.comp = +p.comp > 0 ? +p.comp : 6;
+      p.approx = isFinite(+p.approx) && +p.approx >= 0 ? +p.approx : 0;
+      p.entries = (p.entries || []).map(function (e) {
+        return { date: /^\d{4}-\d{2}-\d{2}$/.test(e.date || '') ? e.date : '', type: e.type === 'repayment' ? 'repayment' : 'loan',
+          amount: e.amount == null || e.amount === '' || !isFinite(+e.amount) ? null : +e.amount, note: e.note || '' };
+      });
+    });
+    if (!s.people.some(function (p) { return p.id === s.currentId; })) s.currentId = s.people[0].id;
+    s.people.forEach(function (p) { p.entries = p.entries.map(function (e, k) { return { e: e, k: k }; }).sort(function (a, b) { var x = a.e.date || '9999-99-99', y = b.e.date || '9999-99-99'; return x < y ? -1 : x > y ? 1 : a.k - b.k; }).map(function (o) { return o.e; }); });
+    return s;
+  }
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) { var s = normalise(JSON.parse(raw)); if (s) return s; }
+      var o = localStorage.getItem(OLD_KEY);
+      if (o) {
+        var old = JSON.parse(o);
+        if (old && Array.isArray(old.accounts)) { var m = normalise(migrateV1(old)); if (m) return m; }
+      }
+    } catch (e) { storageOK = false; }
+    return null;
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { storageOK = false; $('storageWarn').hidden = false; }
+  }
+  function cur() { return state.people.filter(function (p) { return p.id === state.currentId; })[0]; }
+
+  /* ---------- rendering ---------- */
+  var CAL_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>';
+  var BIN_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12M10 11v5M14 11v5"/></svg>';
+
+  function renderForm() {
+    var p = cur();
+    $('pname').value = p.name; $('pphone').value = p.phone;
+    $('calcDate').value = isoToDisp(p.calcDate); $('calcHint').textContent = '';
+    $('roi').value = numStr(p.roi); $('comp').value = numStr(p.comp); $('approx').value = numStr(p.approx);
+    renderLoans();
+  }
+  var editIdx = null, delIdx = null;
+  var LOAN_ERR_FIELDS = ['lDate', 'lAmount'];
+
+  function sortEntries(p) {
+    p.entries = p.entries.map(function (e, k) { return { e: e, k: k }; }).sort(function (a, b) {
+      var x = a.e.date || '9999-99-99', y = b.e.date || '9999-99-99';
+      return x < y ? -1 : x > y ? 1 : a.k - b.k;
+    }).map(function (o) { return o.e; });
+  }
+  function setErr(id, msg) {
+    var inp = $(id), lab = inp.closest('label'), old = lab.querySelector('.ferr');
+    inp.classList.toggle('bad', !!msg);
+    if (old) old.remove();
+    if (msg) { var d = document.createElement('div'); d.className = 'ferr'; d.setAttribute('data-testid', 'form-error'); d.setAttribute('role', 'alert'); d.textContent = msg; lab.appendChild(d); }
+  }
+  function clearErrs() { LOAN_ERR_FIELDS.forEach(function (id) { setErr(id, ''); }); }
+  function resetLoanForm() {
+    $('lDate').value = ''; $('lAmount').value = ''; $('lNote').value = ''; $('lType').value = 'loan';
+    clearErrs(); editIdx = null; syncFormMode();
+  }
+  function syncFormMode() {
+    var ed = editIdx !== null;
+    $('lAdd').textContent = ed ? 'Update' : 'Add';
+    $('loanForm').classList.toggle('editing', ed);
+    $('lCancelSlot').innerHTML = ed ? '<button type="button" class="cancel" data-testid="loan-cancel" id="lCancel">Cancel</button>' : '';
+  }
+  function renderLoans() {
+    editIdx = null; delIdx = null; resetLoanForm(); renderResult();
+  }
+  function renderLoanList() {
+    var p = cur(), s = { calcDate: p.calcDate, roi: p.roi, comp: p.comp, approx: p.approx };
+    var res = computeAll(p.entries.map(txnFor), s), html = '';
+    if (!p.entries.length) {
+      $('loans').innerHTML = '<div class="empty-note">No loans yet. Add the first loan given to this person above.</div>';
+      $('loanCount').textContent = ''; return;
+    }
+    html = '<div class="lhead"><span>Date</span><span>Entry</span><span class="r">Amount</span><span class="r">Interest</span><span class="r">Total</span><span></span></div>';
+    p.entries.forEach(function (e, i) {
+      var r = res.rows[i], isRep = e.type === 'repayment', conf = delIdx === i;
+      var cls = 'lrow' + (isRep ? ' rep' : '') + (editIdx === i ? ' editing' : '') + (conf ? ' confirming' : '');
+      var amt = e.amount == null ? '' : signed(isRep ? -e.amount : e.amount);
+      var body;
+      if (r.status === 'ok') {
+        var P = -r.amt, I = -r.interest;
+        body = '<span class="num la">' + signed(P) + '</span><span class="num li">' + signed(I) + '</span><span class="num lc">' + signed(P + I) + '</span>';
+      } else {
+        var msg = r.status === 'future' ? 'Future date, no interest' : r.status === 'empty' ? 'Empty entry' :
+          (p.calcDate ? 'Date missing, left out of totals' : 'Enter a valid calculation date');
+        body = '<span class="num la">' + (amt || '—') + '</span><span class="lmsg lmsg2">' + msg + '</span>';
+      }
+      var acts = conf ?
+        '<span class="lact"><span class="ask">Delete this entry?</span><button type="button" class="btn yes" data-testid="confirm-yes" data-a="yes">Yes, delete</button><button type="button" class="btn no" data-testid="confirm-no" data-a="no">No</button></span>' :
+        '<span class="lact"><button type="button" class="btn ghost" data-testid="loan-edit" data-a="edit" aria-label="Edit this entry">Edit</button><button type="button" class="btn ghost danger" data-testid="loan-delete" data-a="del" aria-label="Delete this entry">Delete</button></span>';
+      html += '<div class="' + cls + '" data-testid="loan-row" data-i="' + i + '">' +
+        '<span class="ld">' + (e.date ? esc(isoToDisp(e.date)) : '—') + '</span>' +
+        '<span class="lt" title="' + esc(e.note) + '">' + (isRep ? 'Repayment' : 'Loan') + (e.note ? '<span class="ln">' + esc(e.note) + '</span>' : '') + '</span>' +
+        body + acts + '</div>';
+    });
+    $('loans').innerHTML = html;
+    $('loanCount').textContent = p.entries.length > 1 ? p.entries.length + ' entries' : '';
+    var f = $('loans').querySelector('[data-testid="confirm-no"]'); if (f) f.focus();
+  }
+
+  function txnFor(e) {
+    var a = e.amount;
+    return { date: e.date, debit: e.type === 'loan' ? a : null, credit: e.type === 'repayment' ? a : null };
+  }
+  function renderResult() {
+    var p = cur(), s = { calcDate: p.calcDate, roi: p.roi, comp: p.comp, approx: p.approx };
+    var name = p.name.trim();
+    var shown = [];
+    p.entries.forEach(function (e, i) { shown.push({ e: e, i: i }); });
+    var res = computeAll(shown.map(function (x) { return txnFor(x.e); }), s);
+    renderLoanList();
+    var rows = '', prows = '', count = 0, maxT = null;
+    shown.forEach(function (x, k) {
+      var r = res.rows[k], e = x.e;
+      if (r.status === 'empty') return;
+      count++;
+      var isRep = e.type === 'repayment';
+      var typeCell = '<td class="type">' + (isRep ? 'Repayment' : 'Loan') + (e.note ? '<small>' + esc(e.note) + '</small>' : '') + '</td>';
+      var dateCell = '<td class="sub">' + (e.date ? esc(isoToDisp(e.date)) : '—') + '</td>';
+      var cls = isRep ? 'rep' : '';
+      if (r.status === 'ok') {
+        var P = -r.amt, I = -r.interest;
+        var tail = dateCell + typeCell +
+          '<td class="num">' + signed(P) + '</td><td class="num sub">' + (Math.round(r.T * 10) / 10).toFixed(1) + '</td>' +
+          '<td class="num">' + signed(I) + '</td><td class="num">' + signed(P + I) + '</td></tr>';
+        rows += '<tr class="' + cls + '" data-testid="result-row">' + tail;
+        prows += '<tr class="' + cls + '">' + tail;
+        if (e.date && (maxT === null || r.T > maxT)) maxT = r.T;
+      } else {
+        var msg = r.status === 'future' ? 'Dated after the calculation date, so no interest is added' :
+          (p.calcDate ? 'Enter the date for this entry. It is left out of the totals' : 'Enter a valid calculation date');
+        var amtTxt = r.amt ? signed(-r.amt) : '';
+        var ftail = dateCell + typeCell + '<td class="num">' + amtTxt + '</td><td class="msg" colspan="3">' + msg + '</td></tr>';
+        rows += '<tr class="flag ' + cls + '" data-testid="result-row">' + ftail;
+        prows += '<tr class="flag ' + cls + '">' + ftail;
+      }
+    });
+    $('rTable').innerHTML = count ?
+      '<table><thead><tr><th>Date</th><th>Type</th><th class="r">Principal</th><th class="r">Months</th><th class="r">Interest</th><th class="r">Total</th></tr></thead><tbody>' + rows + '</tbody></table>' :
+      '<div class="none">Add a loan to see the interest worked out here.</div>';
+    $('rWho').textContent = name || 'Unnamed person';
+    $('rMeta').textContent = 'Up to ' + (p.calcDate ? isoToDisp(p.calcDate) : '—') + ' · ' + numStr(p.roi) + '% per month · added to principal every ' + numStr(p.comp) + ' months';
+    $('tP').textContent = fmt(res.principal);
+    $('tI').textContent = fmt(res.interest);
+    $('tD').textContent = fmt(res.balance);
+    var who = name || 'this person';
+    var b = Math.round(res.balance * 100);
+    $('dueLabel').textContent = b === 0 ? 'Nothing due' : (res.balanceSide === 'Dr' ? 'Amount due from ' + who : 'Amount payable to ' + who);
+    renderPrint({
+      name: name, phone: p.phone.trim(), calc: p.calcDate ? isoToDisp(p.calcDate) : '—',
+      months: maxT === null ? '—' : String(Math.round(maxT * 10) / 10).replace(/\.0$/, ''),
+      P: fmt(res.principal), I: fmt(res.interest), D: fmt(res.balance), label: $('dueLabel').textContent,
+      rows: prows,
+      raw: { personId: p.id, name: name, phone: p.phone.trim(), calcDate: p.calcDate || '', periodMonths: maxT === null ? null : Math.round(maxT * 10) / 10,
+        principal: Math.abs(res.principal), interest: Math.abs(res.interest), amountDue: Math.abs(res.balance),
+        side: res.balanceSide === 'Dr' ? 'due from' : 'payable to', entries: count }
+    });
+    renderLastPrinted();
+    document.title = name ? 'Interest statement - ' + name : 'Interest Calculator';
+  }
+
+  var lastPrint = null;
+  function renderPrint(d) {
+    if (d) lastPrint = d; else d = lastPrint;
+    if (!d) return;
+    var inc = $('incBreak').checked;
+    var tbl = inc && d.rows ?
+      '<div class="pa-tbl"><table data-testid="print-breakdown"><thead><tr><th>Date</th><th>Type</th><th class="r">Principal</th><th class="r">Months</th><th class="r">Interest</th><th class="r">Total</th></tr></thead><tbody>' + d.rows + '</tbody></table></div>' : '';
+    $('printArea').innerHTML =
+      '<h1 class="pa-pt">Interest Statement</h1>' +
+      '<div class="pa-name" data-testid="print-name">' + esc(d.name || 'Unnamed person') + '</div>' +
+      (d.phone ? '<div class="pa-phone">' + esc(d.phone) + '</div>' : '') +
+      '<div class="pa-meta" data-testid="print-calcdate">Interest calculated up to ' + esc(d.calc) + '</div>' +
+      '<div class="pa-meta" data-testid="print-months">Period: ' + esc(d.months) + ' months</div>' + tbl +
+      '<div class="pa-tot"><div class="trow"><span>Total principal</span><b class="num" data-testid="print-principal">' + d.P + '</b></div>' +
+      '<div class="trow"><span>Total interest</span><b class="num" data-testid="print-interest">' + d.I + '</b></div>' +
+      '<div class="pa-due"><span>' + esc(d.label) + '</span><span class="amt">&#8377; <span data-testid="print-due">' + d.D + '</span></span></div></div>' +
+      '<div class="pa-foot">Printed on ' + isoToDisp(todayISO()) + '</div>';
+  }
+  $('incBreak').addEventListener('change', function () { renderPrint(); });
+  var lastRecAt = 0;
+  function r2(n) { return Math.round(n * 100) / 100; }
+  function recordPrint() {
+    var d = lastPrint; if (!d || !d.raw) return;
+    var now = new Date(), r = d.raw;
+    lastRecAt = now.getTime();
+    state.history.push({ id: uid(), printedAt: now.toISOString(), personId: r.personId, name: r.name, phone: r.phone, calcDate: r.calcDate,
+      periodMonths: r.periodMonths, principal: r2(r.principal), interest: r2(r.interest), amountDue: r2(r.amountDue),
+      side: r.side, breakdownIncluded: $('incBreak').checked, entries: r.entries });
+    save(); renderLastPrinted();
+  }
+  window.addEventListener('beforeprint', function () {
+    renderPrint();
+    if (!$('historyView').hidden) return;
+    if (Date.now() - lastRecAt > 3000) recordPrint();
+  });
+  function dtDisp(iso) {
+    var d = new Date(iso); if (!iso || isNaN(d.getTime())) return '';
+    return p2(d.getDate()) + '-' + p2(d.getMonth() + 1) + '-' + d.getFullYear() + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+  }
+  function renderLastPrinted() {
+    var p = cur(), nm = p.name.trim(), best = null;
+    state.history.forEach(function (h) {
+      var mine = h.personId ? h.personId === p.id : (nm !== '' && h.name.trim() === nm);
+      if (mine && (!best || h.printedAt > best.printedAt)) best = h;
+    });
+    var dd = best ? dtDisp(best.printedAt).slice(0, 10) : '';
+    $('lastPrintedSlot').innerHTML = dd ? '<div class="lastp" data-testid="last-printed">Last printed: ' + dd + '</div>' : '';
+  }
+
+  /* ---------- print history view ---------- */
+  var hDel = null;
+  function sortedHistory() {
+    return state.history.slice().sort(function (a, b) { return a.printedAt < b.printedAt ? 1 : a.printedAt > b.printedAt ? -1 : 0; });
+  }
+  function renderHistory() {
+    var q = $('historySearch').value.trim().toLowerCase(), all = sortedHistory();
+    var list = all.filter(function (h) { return !q || h.name.toLowerCase().indexOf(q) >= 0; });
+    $('hCount').textContent = all.length ? '(' + all.length + ')' : '';
+    if (!all.length) { $('historyBody').innerHTML = '<div class="hempty">Nothing printed yet.</div>'; return; }
+    if (!list.length) { $('historyBody').innerHTML = '<div class="hempty">No records match that name.</div>'; return; }
+    var html = '<table class="htbl"><thead><tr><th>Printed on</th><th>Name</th><th>Interest up to</th><th class="r">Period</th><th class="r">Principal</th><th class="r">Interest</th><th class="r">Amount due</th><th>Breakdown</th><th></th></tr></thead><tbody>';
+    list.forEach(function (h) {
+      var dt = dtDisp(h.printedAt) || '—', nm = h.name.trim() || 'Unnamed person';
+      if (hDel === h.id) {
+        html += '<tr data-testid="history-row" data-id="' + esc(h.id) + '"><td colspan="9" class="hconf"><span class="ask">Delete the record for ' + esc(nm) + ' printed on ' + esc(dt) + '?</span>' +
+          '<button type="button" class="btn yes" data-testid="confirm-yes" data-a="yes">Yes, delete</button><button type="button" class="btn no" data-testid="confirm-no" data-a="no">No</button></td></tr>';
+        return;
+      }
+      html += '<tr data-testid="history-row" data-id="' + esc(h.id) + '"><td class="sub">' + esc(dt) + '</td><td class="nm">' + esc(nm) + (h.phone ? '<small>' + esc(h.phone) + '</small>' : '') + '</td>' +
+        '<td class="sub">' + (h.calcDate ? isoToDisp(h.calcDate) : '—') + '</td>' +
+        '<td class="num">' + (h.periodMonths == null ? '—' : String(h.periodMonths).replace(/\.0$/, '') + ' mo') + '</td>' +
+        '<td class="num">' + fmt(h.principal) + '</td><td class="num">' + fmt(h.interest) + '</td>' +
+        '<td class="num">' + fmt(h.amountDue) + '<small>' + (h.side === 'payable to' ? 'payable to' : 'due from') + '</small></td>' +
+        '<td class="sub">' + (h.breakdownIncluded ? 'Yes' : 'No') + '</td>' +
+        '<td class="hact"><button type="button" class="btn ghost danger" data-testid="history-delete" data-a="del" aria-label="Delete this record">Delete</button></td></tr>';
+    });
+    $('historyBody').innerHTML = html + '</tbody></table>';
+    var f = $('historyBody').querySelector('[data-testid="confirm-no"]'); if (f) f.focus();
+  }
+  function showHistory(on) {
+    $('mainwrap').hidden = on; $('historyView').hidden = !on;
+    if (on) { hDel = null; $('historySearch').value = ''; renderHistory(); window.scrollTo(0, 0); }
+    else { renderLastPrinted(); }
+  }
+  $('historyBtn').onclick = function () { closePops(); calClose(false); showHistory(true); };
+  $('historyBack').onclick = function () { showHistory(false); $('historyBtn').focus(); };
+  $('historySearch').addEventListener('input', function () { hDel = null; renderHistory(); });
+  $('historyBody').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button[data-a]'); if (!b) return;
+    var row = b.closest('tr'), id = row.getAttribute('data-id'), a = b.dataset.a;
+    if (a === 'del') { hDel = id; renderHistory(); }
+    else if (a === 'no') { hDel = null; renderHistory(); }
+    else if (a === 'yes') { state.history = state.history.filter(function (h) { return h.id !== id; }); hDel = null; save(); renderHistory(); }
+  });
+  function csvCell(v) {
+    var t = String(v == null ? '' : v);
+    if (/^[=+@]/.test(t)) t = "'" + t;
+    return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+  }
+  function historyCSV() {
+    var rows = [['Printed on', 'Name', 'Phone or notes', 'Interest up to', 'Period (months)', 'Principal', 'Interest', 'Amount due', 'Due from / payable to', 'Breakdown included', 'Entries']];
+    sortedHistory().forEach(function (h) {
+      rows.push([dtDisp(h.printedAt), h.name, h.phone, h.calcDate ? isoToDisp(h.calcDate) : '', h.periodMonths == null ? '' : h.periodMonths,
+        h.principal.toFixed(2), h.interest.toFixed(2), h.amountDue.toFixed(2), h.side, h.breakdownIncluded ? 'Yes' : 'No', h.entries]);
+    });
+    return '\uFEFF' + rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n') + '\r\n';
+  }
+  window.__historyCSV = historyCSV;
+  $('historyExport').onclick = function () {
+    var blob = new Blob([historyCSV()], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'print-history-' + todayISO() + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  };
+
+  /* ---------- people picker ---------- */
+  function renderPeople() {
+    var q = $('peopleSearch').value.trim().toLowerCase(), html = '';
+    state.people.forEach(function (p) {
+      var label = p.name.trim() || 'Unnamed person';
+      if (q && (label + ' ' + p.phone).toLowerCase().indexOf(q) < 0) return;
+      html += '<button class="item' + (p.id === state.currentId ? ' current' : '') + '" data-id="' + esc(p.id) + '">' + esc(label) +
+        (p.phone ? '<small>' + esc(p.phone) + '</small>' : '') + '</button>';
+    });
+    $('peopleList').innerHTML = html || '<div class="empty">No one found</div>';
+  }
+  function closePops() {
+    $('peoplePop').hidden = true; $('menuPop').hidden = true;
+    $('peopleBtn').setAttribute('aria-expanded', 'false'); $('menuBtn').setAttribute('aria-expanded', 'false');
+  }
+  function togglePop(pop, btn, focusEl) {
+    var open = pop.hidden; closePops();
+    if (open) { pop.hidden = false; btn.setAttribute('aria-expanded', 'true'); if (focusEl) { focusEl.value = ''; renderPeople(); focusEl.focus(); } }
+  }
+  $('peopleBtn').onclick = function (ev) { ev.stopPropagation(); togglePop($('peoplePop'), $('peopleBtn'), $('peopleSearch')); };
+  $('menuBtn').onclick = function (ev) { ev.stopPropagation(); togglePop($('menuPop'), $('menuBtn')); };
+  $('peoplePop').onclick = function (ev) { ev.stopPropagation(); };
+  $('menuPop').onclick = function (ev) { ev.stopPropagation(); };
+  document.addEventListener('click', closePops);
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closePops(); });
+  $('peopleSearch').addEventListener('input', renderPeople);
+  $('peopleList').onclick = function (ev) {
+    var b = ev.target.closest('.item'); if (!b) return;
+    state.currentId = b.dataset.id; save(); closePops(); showHistory(false); renderForm();
+  };
+  $('newPerson').onclick = function () {
+    closePops();
+    var p = newPerson(state.last); state.people.push(p); state.currentId = p.id; save(); showHistory(false); renderForm();
+    $('pname').focus();
+  };
+  /* in-page confirm dialog (a modal div, never a native dialog) */
+  function askModal(title, text, yesLabel, onYes, danger) {
+    var old = document.getElementById('modal'); if (old) old.remove();
+    var m = document.createElement('div'); m.className = 'modal noprint'; m.id = 'modal';
+    m.innerHTML = '<div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mTitle"><h3 id="mTitle"></h3><p id="mText"></p>' +
+      '<div class="row">' + (onYes ? '<button type="button" class="btn" data-testid="confirm-no">Cancel</button><button type="button" class="btn ' + (danger ? 'danger-fill' : 'primary') + '" data-testid="confirm-yes">' + esc(yesLabel) + '</button>' :
+      '<button type="button" class="btn primary" data-testid="confirm-no">Close</button>') + '</div></div>';
+    document.body.appendChild(m);
+    m.querySelector('#mTitle').textContent = title; m.querySelector('#mText').textContent = text;
+    var prev = document.activeElement;
+    function close() { m.remove(); document.removeEventListener('keydown', onKey, true); if (prev && prev.focus) { try { prev.focus(); } catch (e) {} } }
+    function onKey(ev) { if (ev.key === 'Escape') { ev.stopPropagation(); close(); } }
+    document.addEventListener('keydown', onKey, true);
+    m.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button');
+      if (ev.target === m) { close(); return; }
+      if (!b) return;
+      var yes = b.getAttribute('data-testid') === 'confirm-yes';
+      close(); if (yes && onYes) onYes();
+    });
+    m.querySelector('[data-testid="confirm-no"]').focus();
+  }
+  $('delPerson').onclick = function () {
+    closePops();
+    var p = cur();
+    askModal('Delete ' + (p.name.trim() || 'this person') + '?', 'This removes the person and all their loans. It cannot be undone.', 'Yes, delete', function () {
+      state.people = state.people.filter(function (x) { return x.id !== p.id; });
+      if (!state.people.length) { var n = newPerson(state.last); state.people.push(n); }
+      state.currentId = state.people[0].id; save(); showHistory(false); renderForm();
+    }, true);
+  };
+
+  /* ---------- start fresh ---------- */
+  $('startFresh').onclick = function () {
+    closePops();
+    var old = document.getElementById('freshModal'); if (old) old.remove();
+    var m = document.createElement('div'); m.className = 'modal noprint'; m.id = 'freshModal'; m.setAttribute('data-testid', 'fresh-modal');
+    m.innerHTML = '<div class="mbox" role="dialog" aria-modal="true" aria-labelledby="fTitle"><h3 id="fTitle">Delete everything?</h3>' +
+      '<p>This removes all people, all loan entries and the print history from this computer. It cannot be undone.</p>' +
+      '<div class="row split"><button type="button" class="btn" data-testid="fresh-backup">Save backup first</button>' +
+      '<span class="grp"><button type="button" class="btn ghost" data-testid="fresh-cancel">Cancel</button>' +
+      '<button type="button" class="btn danger-fill" data-testid="fresh-confirm">Yes, delete everything</button></span></div></div>';
+    document.body.appendChild(m);
+    var prev = document.activeElement;
+    function close() { m.remove(); document.removeEventListener('keydown', onKey, true); if (prev && prev.focus) { try { prev.focus(); } catch (e) {} } }
+    function onKey(ev) { if (ev.key === 'Escape') { ev.stopPropagation(); close(); } }
+    document.addEventListener('keydown', onKey, true);
+    m.addEventListener('click', function (ev) {
+      if (ev.target === m) { close(); return; }
+      var b = ev.target.closest('button'); if (!b) return;
+      var t = b.getAttribute('data-testid');
+      if (t === 'fresh-backup') { $('backupBtn').onclick(); return; }
+      if (t === 'fresh-cancel') { close(); return; }
+      if (t === 'fresh-confirm') {
+        m.remove(); document.removeEventListener('keydown', onKey, true);
+        var n = newPerson();
+        state = { version: 2, initialized: true, currentId: n.id, last: { roi: 1.25, comp: 6 }, people: [n], history: [] };
+        hDel = null; save(); showHistory(false); renderForm(); $('pname').focus();
+      }
+    });
+    m.querySelector('[data-testid="fresh-cancel"]').focus();
+  };
+
+  /* ---------- backup / restore ---------- */
+  $('backupBtn').onclick = function () {
+    closePops();
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'interest-backup-' + todayISO() + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  };
+  $('restoreBtn').onclick = function () { closePops(); $('restoreFile').click(); };
+  $('restoreFile').onchange = function () {
+    var f = this.files[0]; this.value = ''; if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      var s = null;
+      try {
+        var j = JSON.parse(rd.result);
+        s = Array.isArray(j.accounts) ? normalise(migrateV1(j)) : normalise(j);
+      } catch (e) {}
+      if (!s) { askModal('Not a valid backup', 'That file is not a valid backup, so nothing was changed.'); return; }
+      askModal('Restore this backup?', 'This replaces everything in the app with the backup. Current data will be lost.', 'Yes, restore', function () {
+        state = s; save(); hDel = null; renderForm(); if (!$('historyView').hidden) renderHistory();
+      }, true);
+    };
+    rd.readAsText(f);
+  };
+
+  /* ---------- form events ---------- */
+  function hint(input, msg) {
+    input.classList.toggle('bad', !!msg);
+    var h = input.closest('label') && input.closest('label').querySelector('.hint');
+    if (h) h.textContent = msg || '';
+  }
+  function numField(id, key, min, minExclusive) {
+    $(id).addEventListener('input', function () {
+      var v = parseMoney(this.value), p = cur();
+      var ok = v !== null && !isNaN(v) && (minExclusive ? v > min : v >= min);
+      this.classList.toggle('bad', !ok);
+      if (ok) {
+        p[key] = v;
+        if (key === 'roi' || key === 'comp') state.last[key] = v;
+        save(); renderResult();
+      }
+    });
+  }
+  numField('roi', 'roi', 0, false); numField('comp', 'comp', 0, true); numField('approx', 'approx', 0, false);
+  $('pname').addEventListener('input', function () { cur().name = this.value; save(); renderResult(); });
+  $('pphone').addEventListener('input', function () { cur().phone = this.value; save(); });
+  $('calcDate').addEventListener('input', function () {
+    var iso = dispToISO(this.value), p = cur();
+    p.calcDate = iso || '';
+    hint(this, this.value.trim() && !iso ? 'Type the date like 01-11-2026' : '');
+    if (iso) save();
+    renderResult();
+  });
+  function submitLoan() {
+    var iso = dispToISO($('lDate').value), amt = parseMoney($('lAmount').value), ok = true;
+    setErr('lDate', iso ? '' : ($('lDate').value.trim() ? 'Type the date like 10-02-2026' : 'Enter the date'));
+    setErr('lAmount', amt !== null && !isNaN(amt) && amt > 0 ? '' : (amt === null ? 'Enter the amount' : 'Enter a number above zero'));
+    if (!iso || amt === null || isNaN(amt) || amt <= 0) { (iso ? $('lAmount') : $('lDate')).focus(); return; }
+    var p = cur();
+    var entry = { date: iso, type: $('lType').value === 'repayment' ? 'repayment' : 'loan', amount: amt, note: $('lNote').value.trim() };
+    if (editIdx !== null && p.entries[editIdx]) p.entries[editIdx] = entry; else p.entries.push(entry);
+    sortEntries(p); delIdx = null; save();
+    resetLoanForm(); renderResult(); $('lDate').focus();
+  }
+  $('lAdd').onclick = submitLoan;
+  $('loanForm').addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter' && ev.target.tagName !== 'BUTTON') { ev.preventDefault(); submitLoan(); }
+  });
+  $('lDate').addEventListener('input', function () { setErr('lDate', ''); });
+  $('lAmount').addEventListener('input', function () { setErr('lAmount', ''); });
+  $('loanForm').addEventListener('click', function (ev) {
+    if (ev.target.closest('#lCancel')) { resetLoanForm(); renderLoanList(); $('lDate').focus(); }
+  });
+  $('loans').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button[data-a]'); if (!b) return;
+    var row = b.closest('.lrow'), i = +row.dataset.i, p = cur(), a = b.dataset.a;
+    if (a === 'edit') {
+      var e = p.entries[i]; delIdx = null; clearErrs(); editIdx = i;
+      $('lDate').value = isoToDisp(e.date); $('lAmount').value = e.amount == null ? '' : numStr(e.amount);
+      $('lType').value = e.type; $('lNote').value = e.note || '';
+      syncFormMode(); renderLoanList(); $('lDate').focus();
+    } else if (a === 'del') { delIdx = i; renderLoanList(); }
+    else if (a === 'no') { delIdx = null; renderLoanList(); }
+    else if (a === 'yes') {
+      p.entries.splice(i, 1); delIdx = null;
+      if (editIdx === i) resetLoanForm(); else if (editIdx !== null && i < editIdx) editIdx--;
+      save(); renderResult();
+    }
+  });
+  /* ---------- custom calendar popover ---------- */
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var cal = null; /* { pop, field, btn, y, m, selISO } */
+  function calClose(refocus) {
+    if (!cal) return;
+    var c = cal; cal = null;
+    c.pop.remove(); c.btn.setAttribute('aria-expanded', 'false');
+    window.removeEventListener('resize', calPlace);
+    if (refocus) c.field.focus();
+  }
+  function calPlace() {
+    if (!cal) return;
+    var r = cal.field.closest('.datebox').getBoundingClientRect(), pop = cal.pop;
+    var sx = window.pageXOffset, sy = window.pageYOffset, vw = document.documentElement.clientWidth;
+    var w = pop.offsetWidth, h = pop.offsetHeight;
+    var left = Math.min(Math.max(r.left, 8), Math.max(8, vw - w - 8)) + sx;
+    var top = r.bottom + 6 + sy;
+    if (r.bottom + 6 + h > window.innerHeight - 8 && r.top - 6 - h >= 8) top = r.top - 6 - h + sy;
+    pop.style.left = left + 'px'; pop.style.top = top + 'px';
+  }
+  function calGrid() {
+    var c = cal, first = new Date(c.y, c.m, 1), lead = (first.getDay() + 6) % 7, days = new Date(c.y, c.m + 1, 0).getDate();
+    var today = todayISO(), html = '', i;
+    for (i = 0; i < lead; i++) html += '<span></span>';
+    for (i = 1; i <= days; i++) {
+      var iso = c.y + '-' + p2(c.m + 1) + '-' + p2(i);
+      html += '<button type="button" class="calday' + (iso === c.selISO ? ' sel' : '') + (iso === today ? ' today' : '') +
+        '" data-testid="cal-day" data-date="' + iso + '"' + (iso === c.selISO ? ' aria-pressed="true"' : '') + '>' + i + '</button>';
+    }
+    c.grid.innerHTML = html;
+    c.mSel.value = String(c.m); c.ySel.value = String(c.y);
+  }
+  function calShift(dm) {
+    var c = cal, d = new Date(c.y, c.m + dm, 1), lo = c.ySel.options[0].value, hi = c.ySel.options[c.ySel.options.length - 1].value;
+    if (d.getFullYear() < +lo || d.getFullYear() > +hi) return;
+    c.y = d.getFullYear(); c.m = d.getMonth(); calGrid(); calPlace();
+  }
+  function calOpen(btn) {
+    var field = $(btn.getAttribute('data-for'));
+    calClose(false);
+    var iso = dispToISO(field.value), t = todayISO(), base = iso || t;
+    var y = +base.slice(0, 4), m = +base.slice(5, 7) - 1;
+    var y0 = Math.min(2000, y), y1 = Math.max(+t.slice(0, 4) + 5, y);
+    var pop = document.createElement('div');
+    pop.className = 'calpop'; pop.setAttribute('data-testid', 'cal-popover'); pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Choose a date');
+    var mo = '', yo = '', k;
+    for (k = 0; k < 12; k++) mo += '<option value="' + k + '">' + MONTHS[k] + '</option>';
+    for (k = y0; k <= y1; k++) yo += '<option value="' + k + '">' + k + '</option>';
+    pop.innerHTML = '<div class="calhead"><button type="button" class="calnav" data-a="prev" aria-label="Previous month">&#8249;</button>' +
+      '<select data-testid="cal-month" aria-label="Month">' + mo + '</select><select data-testid="cal-year" aria-label="Year">' + yo + '</select>' +
+      '<button type="button" class="calnav" data-a="next" aria-label="Next month">&#8250;</button></div>' +
+      '<div class="calwd"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>' +
+      '<div class="calgrid"></div>' +
+      '<div class="calfoot"><button type="button" class="btn ghost" data-testid="cal-today" data-a="today">Today</button><button type="button" class="btn ghost" data-testid="cal-clear" data-a="clear">Clear</button></div>';
+    document.body.appendChild(pop);
+    cal = { pop: pop, field: field, btn: btn, y: y, m: m, selISO: iso, grid: pop.querySelector('.calgrid'),
+      mSel: pop.querySelector('[data-testid="cal-month"]'), ySel: pop.querySelector('[data-testid="cal-year"]') };
+    btn.setAttribute('aria-expanded', 'true');
+    calGrid(); calPlace();
+    window.addEventListener('resize', calPlace);
+    var f = pop.querySelector('.calday.sel') || pop.querySelector('.calday.today') || pop.querySelector('.calday');
+    if (f) f.focus({ preventScroll: true });
+    pop.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      var c = cal; if (!c) return;
+      var d = ev.target.closest('.calday'), a = ev.target.closest('[data-a]');
+      var pick = null;
+      if (d) pick = d.getAttribute('data-date');
+      else if (a) {
+        var act = a.getAttribute('data-a');
+        if (act === 'prev') calShift(-1); else if (act === 'next') calShift(1);
+        else if (act === 'today') pick = todayISO();
+        else if (act === 'clear') pick = '';
+      }
+      if (pick !== null) {
+        var fld = c.field;
+        fld.value = pick ? isoToDisp(pick) : '';
+        calClose(false);
+        fld.dispatchEvent(new Event('input', { bubbles: true }));
+        fld.focus();
+      }
+    });
+    pop.addEventListener('change', function (ev) {
+      var c = cal; if (!c) return;
+      if (ev.target === c.mSel) c.m = +c.mSel.value; else if (ev.target === c.ySel) c.y = +c.ySel.value; else return;
+      calGrid(); calPlace();
+    });
+  }
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest && ev.target.closest('button.cal');
+    if (b) {
+      ev.preventDefault();
+      if (cal && cal.btn === b) calClose(true); else calOpen(b);
+    } else if (cal && !cal.pop.contains(ev.target)) calClose(false);
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && cal) { ev.stopPropagation(); calClose(true); }
+  }, true);
+  $('printBtn').onclick = function () { renderPrint(); recordPrint(); window.print(); };
+
+  /* ---------- start ---------- */
+  state = load();
+  if (!state) { state = seed(); }
+  save();
+  if (!storageOK) $('storageWarn').hidden = false;
+  renderForm();
+})();
+</script>
+</body>
+</html>
