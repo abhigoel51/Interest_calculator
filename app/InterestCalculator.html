@@ -26,7 +26,6 @@ button,input,select{font:inherit;color:inherit}
 .menu-wrap{position:relative}
 .pop{position:absolute;top:calc(100% + 8px);right:0;background:var(--surface);border:1px solid var(--line);
   border-radius:12px;box-shadow:0 8px 24px rgba(28,28,26,.08);z-index:20;min-width:260px;padding:8px}
-.people-pop{width:340px}
 .pop .item{display:block;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:10px 12px;cursor:pointer;min-height:44px}
 .pop .item:hover{background:#f3f2ee}
 .pop .item.current{font-weight:600}
@@ -37,7 +36,15 @@ button,input,select{font:inherit;color:inherit}
 .pop .muted-red{color:#a2503f}
 .mbox .row.split{justify-content:space-between;flex-wrap:wrap}
 .mbox .row .grp{display:flex;gap:12px;flex-wrap:wrap}
-.people-list{max-height:320px;overflow:auto;margin-top:6px}
+.psum{margin:0 0 18px;color:var(--muted);font-size:15px}
+.psum b{color:var(--ink);font-weight:600}
+.hbar select{width:auto;min-width:230px}
+.ptbl tbody tr.prow{cursor:pointer;border-top:1px solid var(--line)}
+.ptbl tbody tr.prow:hover{background:#f7f6f2}
+.ptbl tbody tr.prow.current{background:#f1efe8}
+.ptbl tbody tr.prow:focus-visible{outline:none;box-shadow:inset 0 0 0 3px var(--focus)}
+.ptbl td small.pay{display:inline;margin-left:6px}
+.ptbl th.r{text-align:right}
 
 /* layout */
 main{max-width:1360px;margin:0 auto;padding:32px 24px 64px;display:grid;grid-template-columns:1fr;gap:32px;align-items:start}
@@ -102,6 +109,13 @@ details.more .body{margin-top:12px;max-width:50%}
 .btn.primary:hover{background:var(--accent-hover)}
 .btn.ghost{border-color:transparent;background:none;color:var(--ink)}
 .btn.ghost:hover{background:#f3f2ee}
+.namenote{margin-top:14px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;background:var(--surface);padding:12px 14px}
+.namenote p{margin:0 0 10px}
+.namenote .nacts{display:flex;flex-wrap:wrap;gap:8px}
+.np-dim{opacity:.45}
+.duphint{margin-top:10px;font-size:15px;color:var(--muted)}
+.linkbtn{background:none;border:0;padding:0 2px;font:inherit;color:var(--accent);text-decoration:underline;cursor:pointer}
+.namesaved{margin-top:10px;font-size:15px;color:var(--muted)}
 .btn.sm{height:38px;padding:0 14px;font-size:15px}
 .btn:focus-visible,.item:focus-visible,.cal:focus-visible,summary:focus-visible{outline:none;box-shadow:0 0 0 3px var(--focus)}
 
@@ -215,6 +229,12 @@ tr.flag td.msg{color:var(--warn);font-size:14.5px;text-align:right}
 .pa-phone{color:#000;margin-top:2px}
 .pa-meta{margin-top:6px}
 .pa-tbl{margin-top:20px}
+.pa-plist{width:100%;border-collapse:collapse}
+.pa-plist th{text-align:left;font-weight:600;padding:6px 8px 6px 0;border-bottom:1px solid #000}
+.pa-plist th.r,.pa-plist td.num{text-align:right;padding-right:0}
+.pa-plist td{padding:6px 8px 6px 0;border-bottom:1px solid #bbb;vertical-align:top}
+.pa-plist td.num{white-space:nowrap;font-variant-numeric:tabular-nums}
+.pa-note{color:#444;font-size:.92em;margin-left:6px}
 .pa-tot{margin-top:24px;border-top:1px solid #000;padding-top:10px}
 .pa-tot .trow{padding:5px 0;color:#000}
 .pa-due{margin-top:8px;padding-top:12px;border-top:1px solid #000;display:flex;justify-content:space-between;align-items:baseline;gap:16px}
@@ -243,11 +263,7 @@ tr.flag td.msg{color:var(--warn);font-size:14.5px;text-align:right}
 <header class="topbar noprint"><div class="topbar-in">
   <div class="brand">Interest Calculator</div>
   <div class="menu-wrap">
-    <button class="btn" id="peopleBtn" aria-haspopup="true" aria-expanded="false">People</button>
-    <div class="pop people-pop" id="peoplePop" hidden>
-      <input type="text" id="peopleSearch" placeholder="Search by name" aria-label="Search people" autocomplete="off">
-      <div class="people-list" id="peopleList"></div>
-    </div>
+    <button class="btn" id="peopleBtn" data-testid="people-btn">People</button>
   </div>
   <button class="btn" id="historyBtn" data-testid="history-btn">History</button>
   <button class="btn primary" id="newPerson" data-testid="new-person">+ New person</button>
@@ -274,6 +290,8 @@ tr.flag td.msg{color:var(--warn);font-size:14.5px;text-align:right}
         <label class="f"><span class="lbl">Name</span><input type="text" id="pname" data-testid="person-name" autocomplete="off" placeholder="Full name"></label>
         <label class="f"><span class="lbl">Phone or notes (optional)</span><input type="text" id="pphone" data-testid="person-phone" autocomplete="off"></label>
       </div>
+      <div id="dupHintSlot" aria-live="polite"></div>
+      <div id="nameNoteSlot" aria-live="polite"></div>
     </section>
 
     <section class="card sec">
@@ -330,9 +348,29 @@ tr.flag td.msg{color:var(--warn);font-size:14.5px;text-align:right}
       <h2>Print history <span id="hCount" style="text-transform:none;letter-spacing:0;font-weight:400"></span></h2>
       <span class="grow"></span>
       <input type="text" id="historySearch" data-testid="history-search" placeholder="Search by name" aria-label="Search history by name" autocomplete="off">
+      <button type="button" class="btn ghost danger" id="historyClear" data-testid="history-clear" hidden>Clear all history</button>
       <button type="button" class="btn primary" id="historyExport" data-testid="history-export">Download as Excel (CSV)</button>
     </div>
     <div class="hscroll" id="historyBody"></div>
+  </div>
+</section>
+
+<section class="hview noprint" id="peopleView" data-testid="people-view" hidden>
+  <div class="card hcard">
+    <div class="hbar">
+      <button type="button" class="hback" id="peopleBack" data-testid="people-back">&larr; Back</button>
+      <h2>People <span id="pCount" style="text-transform:none;letter-spacing:0;font-weight:400"></span></h2>
+      <span class="grow"></span>
+      <input type="text" id="peopleSearch" data-testid="people-search" placeholder="Search by name or phone" aria-label="Search people by name or phone" autocomplete="off">
+      <select id="peopleSort" data-testid="people-sort" aria-label="Sort people">
+        <option value="name">Name A&ndash;Z</option>
+        <option value="due">Amount due (highest first)</option>
+        <option value="recent">Recently added</option>
+      </select>
+      <button type="button" class="btn primary" id="peopleNew" data-testid="people-new">+ New person</button>
+    </div>
+    <div class="psum" id="peopleSummary" data-testid="people-summary"></div>
+    <div class="hscroll" id="peopleBody"></div>
   </div>
 </section>
 
@@ -510,6 +548,7 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     $('calcDate').value = isoToDisp(p.calcDate); $('calcHint').textContent = '';
     $('roi').value = numStr(p.roi); $('comp').value = numStr(p.comp); $('approx').value = numStr(p.approx);
     renderLoans();
+    if (window.__resetNameUI) window.__resetNameUI();
   }
   var editIdx = null, delIdx = null;
   var LOAN_ERR_FIELDS = ['lDate', 'lAmount'];
@@ -585,7 +624,7 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     p.entries.forEach(function (e, i) { shown.push({ e: e, i: i }); });
     var res = computeAll(shown.map(function (x) { return txnFor(x.e); }), s);
     renderLoanList();
-    var rows = '', prows = '', count = 0, maxT = null;
+    var rows = '', prows = '', count = 0, maxT = null, plist = [];
     shown.forEach(function (x, k) {
       var r = res.rows[k], e = x.e;
       if (r.status === 'empty') return;
@@ -594,6 +633,7 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
       var typeCell = '<td class="type">' + (isRep ? 'Repayment' : 'Loan') + (e.note ? '<small>' + esc(e.note) + '</small>' : '') + '</td>';
       var dateCell = '<td class="sub">' + (e.date ? esc(isoToDisp(e.date)) : '—') + '</td>';
       var cls = isRep ? 'rep' : '';
+      if ((r.status === 'ok' || r.status === 'future') && e.date) plist.push({ date: e.date, isRep: isRep, note: e.note, amt: -r.amt, future: r.status === 'future', k: k });
       if (r.status === 'ok') {
         var P = -r.amt, I = -r.interest;
         var tail = dateCell + typeCell +
@@ -626,12 +666,12 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
       name: name, phone: p.phone.trim(), calc: p.calcDate ? isoToDisp(p.calcDate) : '—',
       months: maxT === null ? '—' : String(Math.round(maxT * 10) / 10).replace(/\.0$/, ''),
       P: fmt(res.principal), I: fmt(res.interest), D: fmt(res.balance), label: $('dueLabel').textContent,
-      rows: prows,
+      rows: prows, plist: plist,
       raw: { personId: p.id, name: name, phone: p.phone.trim(), calcDate: p.calcDate || '', periodMonths: maxT === null ? null : Math.round(maxT * 10) / 10,
         principal: Math.abs(res.principal), interest: Math.abs(res.interest), amountDue: Math.abs(res.balance),
         side: res.balanceSide === 'Dr' ? 'due from' : 'payable to', entries: count }
     });
-    renderLastPrinted();
+    dupId = null; renderLastPrinted();
     document.title = name ? 'Interest statement - ' + name : 'Interest Calculator';
   }
 
@@ -642,12 +682,22 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     var inc = $('incBreak').checked;
     var tbl = inc && d.rows ?
       '<div class="pa-tbl"><table data-testid="print-breakdown"><thead><tr><th>Date</th><th>Type</th><th class="r">Principal</th><th class="r">Months</th><th class="r">Interest</th><th class="r">Total</th></tr></thead><tbody>' + d.rows + '</tbody></table></div>' : '';
+    var list = '';
+    if (!inc && d.plist && d.plist.length) {
+      var pl = d.plist.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : a.k - b.k; });
+      list = '<div class="pa-tbl"><table class="pa-plist" data-testid="print-principal-list"><thead><tr><th>Date</th><th>Particulars</th><th class="r">Amount</th></tr></thead><tbody>' +
+        pl.map(function (x) {
+          return '<tr data-testid="print-principal-row"><td>' + esc(isoToDisp(x.date)) + '</td><td>' + (x.isRep ? 'Repayment received' : 'Loan given') +
+            (x.note ? ' <span class="pa-note">' + esc(x.note) + '</span>' : '') + (x.future ? ' <span class="pa-note">(after calculation date)</span>' : '') +
+            '</td><td class="num">' + signed(x.amt) + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    }
     $('printArea').innerHTML =
       '<h1 class="pa-pt">Interest Statement</h1>' +
       '<div class="pa-name" data-testid="print-name">' + esc(d.name || 'Unnamed person') + '</div>' +
       (d.phone ? '<div class="pa-phone">' + esc(d.phone) + '</div>' : '') +
       '<div class="pa-meta" data-testid="print-calcdate">Interest calculated up to ' + esc(d.calc) + '</div>' +
-      '<div class="pa-meta" data-testid="print-months">Period: ' + esc(d.months) + ' months</div>' + tbl +
+      '<div class="pa-meta" data-testid="print-months">Period: ' + esc(d.months) + ' months</div>' + tbl + list +
       '<div class="pa-tot"><div class="trow"><span>Total principal</span><b class="num" data-testid="print-principal">' + d.P + '</b></div>' +
       '<div class="trow"><span>Total interest</span><b class="num" data-testid="print-interest">' + d.I + '</b></div>' +
       '<div class="pa-due"><span>' + esc(d.label) + '</span><span class="amt">&#8377; <span data-testid="print-due">' + d.D + '</span></span></div></div>' +
@@ -656,10 +706,25 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
   $('incBreak').addEventListener('change', function () { renderPrint(); });
   var lastRecAt = 0;
   function r2(n) { return Math.round(n * 100) / 100; }
+  var dupId = null;
+  function cents(x) { return Math.round((Number(x) || 0) * 100); }
+  function findDuplicateRecord(r) {
+    var nm = String(r.name || '').trim().toLowerCase();
+    for (var i = 0; i < state.history.length; i++) {
+      var h = state.history[i];
+      var same = (h.personId && r.personId) ? h.personId === r.personId : String(h.name || '').trim().toLowerCase() === nm;
+      if (same && (h.calcDate || '') === (r.calcDate || '') && cents(h.principal) === cents(r.principal) &&
+          cents(h.interest) === cents(r.interest) && cents(h.amountDue) === cents(r.amountDue)) return h;
+    }
+    return null;
+  }
   function recordPrint() {
     var d = lastPrint; if (!d || !d.raw) return;
     var now = new Date(), r = d.raw;
     lastRecAt = now.getTime();
+    var dup = findDuplicateRecord(r);
+    if (dup) { dupId = dup.id; renderLastPrinted(); return; }
+    dupId = null;
     state.history.push({ id: uid(), printedAt: now.toISOString(), personId: r.personId, name: r.name, phone: r.phone, calcDate: r.calcDate,
       periodMonths: r.periodMonths, principal: r2(r.principal), interest: r2(r.interest), amountDue: r2(r.amountDue),
       side: r.side, breakdownIncluded: $('incBreak').checked, entries: r.entries });
@@ -681,6 +746,8 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
       if (mine && (!best || h.printedAt > best.printedAt)) best = h;
     });
     var dd = best ? dtDisp(best.printedAt).slice(0, 10) : '';
+    var dupRec = dupId ? state.history.filter(function (h) { return h.id === dupId; })[0] : null;
+    if (dupRec) { $('lastPrintedSlot').innerHTML = '<div class="lastp" data-testid="last-printed">Already in history (printed on ' + dtDisp(dupRec.printedAt).slice(0, 10) + ')</div>'; return; }
     $('lastPrintedSlot').innerHTML = dd ? '<div class="lastp" data-testid="last-printed">Last printed: ' + dd + '</div>' : '';
   }
 
@@ -693,6 +760,7 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     var q = $('historySearch').value.trim().toLowerCase(), all = sortedHistory();
     var list = all.filter(function (h) { return !q || h.name.toLowerCase().indexOf(q) >= 0; });
     $('hCount').textContent = all.length ? '(' + all.length + ')' : '';
+    $('historyClear').hidden = !all.length;
     if (!all.length) { $('historyBody').innerHTML = '<div class="hempty">Nothing printed yet.</div>'; return; }
     if (!list.length) { $('historyBody').innerHTML = '<div class="hempty">No records match that name.</div>'; return; }
     var html = '<table class="htbl"><thead><tr><th>Printed on</th><th>Name</th><th>Interest up to</th><th class="r">Period</th><th class="r">Principal</th><th class="r">Interest</th><th class="r">Amount due</th><th>Breakdown</th><th></th></tr></thead><tbody>';
@@ -714,13 +782,19 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     $('historyBody').innerHTML = html + '</tbody></table>';
     var f = $('historyBody').querySelector('[data-testid="confirm-no"]'); if (f) f.focus();
   }
-  function showHistory(on) {
-    $('mainwrap').hidden = on; $('historyView').hidden = !on;
-    if (on) { hDel = null; $('historySearch').value = ''; renderHistory(); window.scrollTo(0, 0); }
-    else { renderLastPrinted(); }
+  /* exactly one of main / history / people is visible */
+  function showView(v) {
+    if (v !== 'main' && nameShown) { /* leaving main with a name change undecided: discard it, the original name stays */
+      $('pname').value = cur().name; hideNameNote(); delete $('nameNoteSlot').dataset.dup; nameSuppress = false; updateDupHint();
+    }
+    $('mainwrap').hidden = v !== 'main'; $('historyView').hidden = v !== 'history'; $('peopleView').hidden = v !== 'people';
+    if (v === 'history') { hDel = null; $('historySearch').value = ''; renderHistory(); window.scrollTo(0, 0); }
+    else if (v === 'people') { pDel = null; pRes = null; $('peopleSearch').value = ''; renderPeople(); window.scrollTo(0, 0); }
+    else { dupId = null; renderLastPrinted(); }
   }
-  $('historyBtn').onclick = function () { closePops(); calClose(false); showHistory(true); };
-  $('historyBack').onclick = function () { showHistory(false); $('historyBtn').focus(); };
+  function showHistory(on) { showView(on ? 'history' : 'main'); }
+  $('historyBtn').onclick = function () { closePops(); calClose(false); showView('history'); };
+  $('historyBack').onclick = function () { showView('main'); $('historyBtn').focus(); };
   $('historySearch').addEventListener('input', function () { hDel = null; renderHistory(); });
   $('historyBody').addEventListener('click', function (ev) {
     var b = ev.target.closest('button[data-a]'); if (!b) return;
@@ -729,6 +803,31 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     else if (a === 'no') { hDel = null; renderHistory(); }
     else if (a === 'yes') { state.history = state.history.filter(function (h) { return h.id !== id; }); hDel = null; save(); renderHistory(); }
   });
+  $('historyClear').onclick = function () {
+    var n = state.history.length; if (!n) return;
+    var old = document.getElementById('clearModal'); if (old) old.remove();
+    var m = document.createElement('div'); m.className = 'modal noprint'; m.id = 'clearModal'; m.setAttribute('data-testid', 'history-clear-modal');
+    m.innerHTML = '<div class="mbox" role="dialog" aria-modal="true" aria-labelledby="cTitle"><h3 id="cTitle">Clear all history?</h3>' +
+      '<p>Delete all ' + n + ' print record' + (n === 1 ? '' : 's') + '? People and loans are not affected. This cannot be undone.</p>' +
+      '<div class="row"><button type="button" class="btn ghost" data-testid="history-clear-cancel">Cancel</button>' +
+      '<button type="button" class="btn danger-fill" data-testid="history-clear-confirm">Yes, clear history</button></div></div>';
+    document.body.appendChild(m);
+    var prev = document.activeElement;
+    function close() { m.remove(); document.removeEventListener('keydown', onKey, true); if (prev && prev.focus) { try { prev.focus(); } catch (e) {} } }
+    function onKey(ev) { if (ev.key === 'Escape') { ev.stopPropagation(); close(); } }
+    document.addEventListener('keydown', onKey, true);
+    m.querySelector('[data-testid="history-clear-cancel"]').focus();
+    m.addEventListener('click', function (ev) {
+      if (ev.target === m) { close(); return; }
+      var b = ev.target.closest('button'); if (!b) return;
+      var tid = b.getAttribute('data-testid');
+      if (tid === 'history-clear-cancel') close();
+      else if (tid === 'history-clear-confirm') {
+        m.remove(); document.removeEventListener('keydown', onKey, true);
+        state.history = []; hDel = null; dupId = null; save(); renderHistory(); $('historyBack').focus();
+      }
+    });
+  };
   function csvCell(v) {
     var t = String(v == null ? '' : v);
     if (/^[=+@]/.test(t)) t = "'" + t;
@@ -751,39 +850,115 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
   };
 
-  /* ---------- people picker ---------- */
-  function renderPeople() {
-    var q = $('peopleSearch').value.trim().toLowerCase(), html = '';
-    state.people.forEach(function (p) {
-      var label = p.name.trim() || 'Unnamed person';
-      if (q && (label + ' ' + p.phone).toLowerCase().indexOf(q) < 0) return;
-      html += '<button class="item' + (p.id === state.currentId ? ' current' : '') + '" data-id="' + esc(p.id) + '">' + esc(label) +
-        (p.phone ? '<small>' + esc(p.phone) + '</small>' : '') + '</button>';
+  /* ---------- people page ---------- */
+  var pDel = null, pRes = null, pTimer = null;
+  function peopleResults() {
+    if (pRes) return pRes;
+    pRes = state.people.map(function (p, i) {
+      var rs = computeAll(p.entries.map(txnFor), { calcDate: p.calcDate, roi: p.roi, comp: p.comp, approx: p.approx });
+      var lp = ''; /* latest print date (dd-mm-yyyy), matched by person id, else by name */
+      var nm = p.name.trim().toLowerCase();
+      state.history.forEach(function (h) {
+        var mine = h.personId ? h.personId === p.id : (nm !== '' && h.name.trim().toLowerCase() === nm);
+        if (mine && (!lp || h.printedAt > lp.at)) lp = { at: h.printedAt };
+      });
+      return { p: p, idx: i, label: p.name.trim() || 'Unnamed person', rs: rs, due: -rs.balance,
+        lp: lp ? dtDisp(lp.at).slice(0, 10) : '', hay: (p.name + ' ' + p.phone).toLowerCase() };
     });
-    $('peopleList').innerHTML = html || '<div class="empty">No one found</div>';
+    return pRes;
+  }
+  function renderPeople() {
+    var all = peopleResults(), q = $('peopleSearch').value.trim().toLowerCase(), sort = $('peopleSort').value;
+    var P = 0, I = 0, D = 0;
+    function c2(v) { return Math.round(v * 100) / 100; } /* sum the same 2-decimal figures the rows show, so the totals add up exactly */
+    all.forEach(function (r) { P += c2(r.rs.principal); I += c2(r.rs.interest); D += c2(r.due); });
+    D = c2(D); P = c2(P); I = c2(I);
+    $('pCount').textContent = '(' + all.length + ')';
+    function net(v, tid) { /* principal & interest keep the same sign as the due side; negative means payable */
+      return '<b' + (tid ? ' data-testid="' + tid + '"' : '') + '>' + fmt(v) + '</b>';
+    }
+    var sumHtml = all.length + (all.length === 1 ? ' person' : ' people') + ' &middot; Total principal &#8377;' + net(-P) +
+      ' &middot; Total interest &#8377;' + net(-I) + ' &middot; Total due &#8377;<b><span data-testid="people-total-due">' + fmt(D) + '</span></b>' +
+      (Math.round(D * 100) < 0 ? ' <span style="color:var(--muted)">payable</span>' : '');
+    $('peopleSummary').innerHTML = all.length ? sumHtml : '';
+    if (!all.length) { $('peopleBody').innerHTML = '<div class="hempty">No people yet.</div>'; return; }
+    var list = all.filter(function (r) { return !q || r.hay.indexOf(q) >= 0; });
+    if (!list.length) { $('peopleBody').innerHTML = '<div class="hempty">No one matches ‘' + esc($('peopleSearch').value.trim()) + '’.</div>'; return; }
+    list = list.slice();
+    if (sort === 'due') list.sort(function (a, b) { return b.due - a.due || a.idx - b.idx; });
+    else if (sort === 'recent') list.sort(function (a, b) { return b.idx - a.idx; });
+    else list.sort(function (a, b) {
+      var ae = a.p.name.trim() === '', be = b.p.name.trim() === '';
+      if (ae !== be) return ae ? 1 : -1;
+      var c = a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
+      return c || a.idx - b.idx;
+    });
+    var h = ['<table class="htbl ptbl"><thead><tr><th>Name</th><th class="r">Loans</th><th class="r">Principal</th><th class="r">Interest</th><th class="r">Amount due</th><th>Up to</th><th>Last printed</th><th></th></tr></thead><tbody>'];
+    list.forEach(function (r) {
+      var p = r.p, id = esc(p.id), cls = 'prow' + (p.id === state.currentId ? ' current' : '');
+      if (pDel === p.id) {
+        var n = p.entries.length;
+        h.push('<tr class="' + cls + '" tabindex="-1" data-id="' + id + '" data-testid="people-item"><td colspan="8" class="hconf"><span class="ask">Delete ' + esc(r.label) + ' and their ' + n + (n === 1 ? ' loan' : ' loans') + '?</span>' +
+          '<button type="button" class="btn yes" data-testid="confirm-yes" data-a="yes">Yes, delete</button><button type="button" class="btn no" data-testid="confirm-no" data-a="no">No</button></td></tr>');
+        return;
+      }
+      var due = Math.round(r.due * 100) < 0;
+      h.push('<tr class="' + cls + '" tabindex="0" data-id="' + id + '" data-testid="people-item"><td class="nm">' + esc(r.label) + (p.phone ? '<small>' + esc(p.phone) + '</small>' : '') + '</td>' +
+        '<td class="num">' + p.entries.length + '</td><td class="num">' + fmt(r.rs.principal) + '</td><td class="num">' + fmt(r.rs.interest) + '</td>' +
+        '<td class="num"><span data-testid="people-due">' + fmt(r.rs.balance) + '</span>' + (due ? '<small>payable</small>' : '') + '</td>' +
+        '<td class="sub">' + (p.calcDate ? isoToDisp(p.calcDate) : '—') + '</td><td class="sub">' + (r.lp || '—') + '</td>' +
+        '<td class="hact"><button type="button" class="btn ghost danger" data-testid="people-delete" data-a="del" aria-label="Delete ' + esc(r.label) + '">Delete</button></td></tr>');
+    });
+    h.push('</tbody></table>');
+    $('peopleBody').innerHTML = h.join('');
+    var f = $('peopleBody').querySelector('[data-testid="confirm-no"]'); if (f) f.focus();
+  }
+  function openPerson(id) {
+    if (!state.people.some(function (x) { return x.id === id; })) return;
+    state.currentId = id; save(); showView('main'); renderForm();
+  }
+  $('peopleBtn').onclick = function () { closePops(); calClose(false); showView('people'); };
+  $('peopleBack').onclick = function () { showView('main'); $('peopleBtn').focus(); };
+  $('peopleSort').addEventListener('change', renderPeople);
+  $('peopleSearch').addEventListener('input', function () {
+    pDel = null; clearTimeout(pTimer); pTimer = setTimeout(renderPeople, 100);
+  });
+  $('peopleNew').onclick = function () { $('newPerson').onclick(); };
+  $('peopleBody').addEventListener('click', function (ev) {
+    var tr = ev.target.closest('tr[data-id]'); if (!tr) return;
+    var id = tr.getAttribute('data-id'), b = ev.target.closest('button[data-a]');
+    if (!b) { if (pDel === null) openPerson(id); return; }
+    var a = b.dataset.a;
+    if (a === 'del') { pDel = id; renderPeople(); }
+    else if (a === 'no') { pDel = null; renderPeople(); }
+    else if (a === 'yes') { pDel = null; deletePerson(id, true); }
+  });
+  $('peopleBody').addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Enter' || ev.target.tagName !== 'TR') return;
+    ev.preventDefault(); openPerson(ev.target.getAttribute('data-id'));
+  });
+  /* delete a person (never touches print history); stay on the People page if asked */
+  function deletePerson(id, stayOnPeople) {
+    state.people = state.people.filter(function (x) { return x.id !== id; });
+    if (!state.people.length) state.people.push(newPerson(state.last));
+    if (state.currentId === id || !state.people.some(function (x) { return x.id === state.currentId; })) state.currentId = state.people[0].id;
+    save(); pRes = null;
+    if (stayOnPeople) { renderForm(); renderPeople(); } else { showView('main'); renderForm(); }
   }
   function closePops() {
-    $('peoplePop').hidden = true; $('menuPop').hidden = true;
-    $('peopleBtn').setAttribute('aria-expanded', 'false'); $('menuBtn').setAttribute('aria-expanded', 'false');
+    $('menuPop').hidden = true; $('menuBtn').setAttribute('aria-expanded', 'false');
   }
-  function togglePop(pop, btn, focusEl) {
+  function togglePop(pop, btn) {
     var open = pop.hidden; closePops();
-    if (open) { pop.hidden = false; btn.setAttribute('aria-expanded', 'true'); if (focusEl) { focusEl.value = ''; renderPeople(); focusEl.focus(); } }
+    if (open) { pop.hidden = false; btn.setAttribute('aria-expanded', 'true'); }
   }
-  $('peopleBtn').onclick = function (ev) { ev.stopPropagation(); togglePop($('peoplePop'), $('peopleBtn'), $('peopleSearch')); };
   $('menuBtn').onclick = function (ev) { ev.stopPropagation(); togglePop($('menuPop'), $('menuBtn')); };
-  $('peoplePop').onclick = function (ev) { ev.stopPropagation(); };
   $('menuPop').onclick = function (ev) { ev.stopPropagation(); };
   document.addEventListener('click', closePops);
   document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closePops(); });
-  $('peopleSearch').addEventListener('input', renderPeople);
-  $('peopleList').onclick = function (ev) {
-    var b = ev.target.closest('.item'); if (!b) return;
-    state.currentId = b.dataset.id; save(); closePops(); showHistory(false); renderForm();
-  };
   $('newPerson').onclick = function () {
     closePops();
-    var p = newPerson(state.last); state.people.push(p); state.currentId = p.id; save(); showHistory(false); renderForm();
+    var p = newPerson(state.last); state.people.push(p); state.currentId = p.id; pRes = null; save(); showView('main'); renderForm();
     $('pname').focus();
   };
   /* in-page confirm dialog (a modal div, never a native dialog) */
@@ -812,9 +987,7 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     closePops();
     var p = cur();
     askModal('Delete ' + (p.name.trim() || 'this person') + '?', 'This removes the person and all their loans. It cannot be undone.', 'Yes, delete', function () {
-      state.people = state.people.filter(function (x) { return x.id !== p.id; });
-      if (!state.people.length) { var n = newPerson(state.last); state.people.push(n); }
-      state.currentId = state.people[0].id; save(); showHistory(false); renderForm();
+      deletePerson(p.id, false);
     }, true);
   };
 
@@ -843,7 +1016,7 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
         m.remove(); document.removeEventListener('keydown', onKey, true);
         var n = newPerson();
         state = { version: 2, initialized: true, currentId: n.id, last: { roi: 1.25, comp: 6 }, people: [n], history: [] };
-        hDel = null; save(); showHistory(false); renderForm(); $('pname').focus();
+        hDel = null; pRes = null; save(); showView('main'); renderForm(); $('pname').focus();
       }
     });
     m.querySelector('[data-testid="fresh-cancel"]').focus();
@@ -870,7 +1043,7 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
       } catch (e) {}
       if (!s) { askModal('Not a valid backup', 'That file is not a valid backup, so nothing was changed.'); return; }
       askModal('Restore this backup?', 'This replaces everything in the app with the backup. Current data will be lost.', 'Yes, restore', function () {
-        state = s; save(); hDel = null; renderForm(); if (!$('historyView').hidden) renderHistory();
+        state = s; save(); hDel = null; pRes = null; renderForm(); if (!$('historyView').hidden) renderHistory(); if (!$('peopleView').hidden) renderPeople();
       }, true);
     };
     rd.readAsText(f);
@@ -895,7 +1068,110 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     });
   }
   numField('roi', 'roi', 0, false); numField('comp', 'comp', 0, true); numField('approx', 'approx', 0, false);
-  $('pname').addEventListener('input', function () { cur().name = this.value; save(); renderResult(); });
+  /* v10: a name change on a person WITH entries is pending (never stored) until the user decides */
+  var nameSuppress = false, nameShown = false, savedTimer = null;
+  function dimTargets() {
+    var t = [document.querySelector('header.topbar'), $('storageWarn'), document.querySelector('.result-col')];
+    var secs = document.querySelectorAll('.form-col .card.sec');
+    for (var i = 1; i < secs.length; i++) t.push(secs[i]);
+    return t;
+  }
+  function setPendingUI(on) {
+    dimTargets().forEach(function (el) {
+      if (!el) return;
+      if (on) { el.setAttribute('inert', ''); el.classList.add('np-dim'); }
+      else { el.removeAttribute('inert'); el.classList.remove('np-dim'); }
+    });
+  }
+  function hideNameNote() { nameShown = false; var n = $('nameNoteSlot').querySelector('.namenote'); if (n) n.remove(); setPendingUI(false); }
+  function hideSavedNote() { clearTimeout(savedTimer); var n = $('nameNoteSlot').querySelector('.namesaved'); if (n) n.remove(); }
+  function norm(s) { return String(s || '').trim().toLowerCase(); }
+  function findOther(name) {
+    var k = norm(name); if (!k) return null;
+    var me = state.currentId;
+    for (var i = 0; i < state.people.length; i++) if (state.people[i].id !== me && norm(state.people[i].name) === k) return state.people[i];
+    return null;
+  }
+  function showNameNote() {
+    var p = cur(), n = p.entries.length;
+    hideSavedNote(); nameShown = true;
+    $('nameNoteSlot').innerHTML = '<div class="namenote" data-testid="name-change-prompt"><p>Is this a new person? ' + esc(p.name) + '’s ' +
+      n + (n === 1 ? ' loan is' : ' loans are') + ' still on screen.</p><div class="nacts">' +
+      '<button type="button" class="btn primary sm" data-testid="name-change-new">Start new person</button>' +
+      '<button type="button" class="btn sm" data-testid="name-change-same">Same person, just correcting the name</button>' +
+      '<button type="button" class="btn ghost sm" data-testid="name-change-undo">Undo</button></div></div>';
+    setPendingUI(true);
+  }
+  function showDupNote(other) {
+    var n = other.entries.length, nm = other.name.trim();
+    $('nameNoteSlot').innerHTML = '<div class="namenote" data-testid="name-change-prompt"><p>' + esc(nm) + ' is already saved (' +
+      n + (n === 1 ? ' loan' : ' loans') + ').</p><div class="nacts">' +
+      '<button type="button" class="btn primary sm" data-testid="dup-open">Open ' + esc(nm) + '</button>' +
+      '<button type="button" class="btn sm" data-testid="dup-create">Create another ' + esc(nm) + '</button>' +
+      '<button type="button" class="btn ghost sm" data-testid="name-change-undo">Undo</button></div></div>';
+    $('nameNoteSlot').dataset.dup = other.id;
+  }
+  function undoName() {
+    $('pname').value = cur().name; hideNameNote(); delete $('nameNoteSlot').dataset.dup; nameSuppress = false;
+    updateDupHint(); $('pname').focus();
+  }
+  function updateDupHint() {
+    var p = cur(), o = p.entries.length === 0 ? findOther(p.name) : null, slot = $('dupHintSlot');
+    slot.innerHTML = o ? '<div class="duphint" data-testid="dup-hint">Another person named ' + esc(o.name.trim()) +
+      ' is already saved. <button type="button" class="linkbtn" data-testid="dup-hint-open">Open them</button></div>' : '';
+  }
+  window.__resetNameUI = function () { hideNameNote(); delete $('nameNoteSlot').dataset.dup; updateDupHint(); };
+  function startNewPerson(typed) {
+    var old = cur(), oldName = old.name;
+    var np = newPerson(state.last); np.name = typed;
+    state.people.push(np); state.currentId = np.id; save();
+    hideNameNote(); delete $('nameNoteSlot').dataset.dup; showHistory(false); renderForm();
+    var f = $('pname'); f.focus(); f.setSelectionRange(typed.length, typed.length);
+    nameSuppress = false;
+    $('nameNoteSlot').innerHTML = '<div class="namesaved" data-testid="name-change-saved">' + esc(oldName) + ' was saved. Find them anytime under People.</div>';
+    savedTimer = setTimeout(hideSavedNote, 6000);
+  }
+  $('pname').addEventListener('focus', function () { if (!nameShown) nameSuppress = false; });
+  $('pname').addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && nameShown) { ev.preventDefault(); ev.stopPropagation(); undoName(); } });
+  $('nameNoteSlot').addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && nameShown) { ev.preventDefault(); ev.stopPropagation(); undoName(); } });
+  $('nameNoteSlot').addEventListener('mousedown', function (ev) { if (ev.target.closest('button')) ev.preventDefault(); });
+  $('nameNoteSlot').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button'); if (!b) return;
+    var tid = b.getAttribute('data-testid'), p = cur(), typed = $('pname').value;
+    if (tid === 'name-change-undo') undoName();
+    else if (tid === 'name-change-same') {
+      p.name = typed; save(); nameSuppress = true; hideNameNote(); renderResult(); updateDupHint(); $('pname').focus();
+    } else if (tid === 'name-change-new') {
+      var other = findOther(typed);
+      if (other) { hideSavedNote(); showDupNote(other); } else startNewPerson(typed);
+    } else if (tid === 'dup-create') startNewPerson(typed);
+    else if (tid === 'dup-open') {
+      var ex = null, id = $('nameNoteSlot').dataset.dup;
+      state.people.forEach(function (q) { if (q.id === id) ex = q; });
+      if (!ex) { undoName(); return; }
+      $('pname').value = p.name; hideNameNote(); delete $('nameNoteSlot').dataset.dup;
+      state.currentId = ex.id; save(); showHistory(false); renderForm();
+    }
+  });
+  $('dupHintSlot').addEventListener('click', function (ev) {
+    if (!ev.target.closest('[data-testid="dup-hint-open"]')) return;
+    var p = cur(), o = findOther(p.name); if (!o) return;
+    if (p.entries.length === 0 && !p.phone.trim()) state.people = state.people.filter(function (q) { return q.id !== p.id; });
+    state.currentId = o.id; save(); showHistory(false); renderForm();
+  });
+  $('pname').addEventListener('input', function () {
+    hideSavedNote();
+    var p = cur(), v = this.value;
+    if (p.entries.length >= 1 && p.name.trim() !== '') {
+      /* pending: never write p.name here */
+      if (v === p.name) { hideNameNote(); delete $('nameNoteSlot').dataset.dup; }
+      else if (!nameSuppress && !nameShown) showNameNote();
+      else if ($('nameNoteSlot').dataset.dup) { delete $('nameNoteSlot').dataset.dup; showNameNote(); }
+      if (v !== p.name && nameSuppress) { p.name = v; save(); renderResult(); }
+      return;
+    }
+    p.name = v; save(); renderResult(); updateDupHint();
+  });
   $('pphone').addEventListener('input', function () { cur().phone = this.value; save(); });
   $('calcDate').addEventListener('input', function () {
     var iso = dispToISO(this.value), p = cur();

@@ -1,0 +1,1514 @@
+[
+ {
+  "name": "spec_reference",
+  "description": "Spec reference: two debits 70000 on 2026-02-10, expect 15579.375 Dr",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2026-02-10",
+    "particulars": "",
+    "debit": 70000,
+    "credit": null
+   },
+   {
+    "date": "2026-02-10",
+    "particulars": "",
+    "debit": 70000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -70000.0,
+     "T": 8.7,
+     "V": 1,
+     "W": 2.6999999999999993,
+     "interest": -7789.6875,
+     "status": "ok"
+    },
+    {
+     "amt": -70000.0,
+     "T": 8.7,
+     "V": 1,
+     "W": 2.6999999999999993,
+     "interest": -7789.6875,
+     "status": "ok"
+    }
+   ],
+   "principal": -140000.0,
+   "interest": -15579.375,
+   "balance": -155579.375,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "exact_12_months",
+  "description": "T=12 exact multiple of comp (hand-verified)",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2025-11-01",
+    "particulars": "",
+    "debit": 10000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -10000.0,
+     "T": 12.0,
+     "V": 1,
+     "W": 6.0,
+     "interest": -1556.25,
+     "status": "ok"
+    }
+   ],
+   "principal": -10000.0,
+   "interest": -1556.25,
+   "balance": -11556.25,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "credit_fraction_lt1",
+  "description": "Credit, T=0.5 (hand-verified)",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2026-10-16",
+    "particulars": "",
+    "debit": null,
+    "credit": 50000
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": 50000.0,
+     "T": 0.5,
+     "V": 0,
+     "W": 0.5,
+     "interest": 312.5000000000073,
+     "status": "ok"
+    }
+   ],
+   "principal": 50000.0,
+   "interest": 312.5000000000073,
+   "balance": 50312.50000000001,
+   "principalSide": "Cr",
+   "interestSide": "Cr",
+   "balanceSide": "Cr"
+  }
+ },
+ {
+  "name": "exact_6_months",
+  "description": "T=6 exact, comp 6",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2026-05-01",
+    "particulars": "",
+    "debit": 20000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -20000.0,
+     "T": 6.0,
+     "V": 0,
+     "W": 6.0,
+     "interest": -1500.0,
+     "status": "ok"
+    }
+   ],
+   "principal": -20000.0,
+   "interest": -1500.0,
+   "balance": -21500.0,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "fraction_lt1_debit",
+  "description": "T=0.2 debit",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2026-10-26",
+    "particulars": "",
+    "debit": 100000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -100000.0,
+     "T": 0.16666666666666663,
+     "V": 0,
+     "W": 0.16666666666666663,
+     "interest": -208.33333333334303,
+     "status": "ok"
+    }
+   ],
+   "principal": -100000.0,
+   "interest": -208.33333333334303,
+   "balance": -100208.33333333334,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "same_day",
+  "description": "T=0 same-day transaction",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2026-11-01",
+    "particulars": "",
+    "debit": 5000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -5000.0,
+     "T": 0.0,
+     "V": -1,
+     "W": 6.0,
+     "interest": 0.0,
+     "status": "ok"
+    }
+   ],
+   "principal": -5000.0,
+   "interest": 0.0,
+   "balance": -5000.0,
+   "principalSide": "Dr",
+   "interestSide": "Cr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "mixed_cr_result",
+  "description": "Debit and larger credit gives Cr totals",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2025-01-15",
+    "particulars": "",
+    "debit": 10000,
+    "credit": null
+   },
+   {
+    "date": "2025-06-20",
+    "particulars": "",
+    "debit": null,
+    "credit": 80000
+   },
+   {
+    "date": "2026-03-05",
+    "particulars": "",
+    "debit": 5000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -10000.0,
+     "T": 21.533333333333335,
+     "V": 3,
+     "W": 3.533333333333335,
+     "interest": -2971.649869791665,
+     "status": "ok"
+    },
+    {
+     "amt": 80000.0,
+     "T": 16.366666666666667,
+     "V": 2,
+     "W": 4.366666666666667,
+     "interest": 17496.229166666657,
+     "status": "ok"
+    },
+    {
+     "amt": -5000.0,
+     "T": 7.866666666666666,
+     "V": 1,
+     "W": 1.8666666666666663,
+     "interest": -500.41666666666697,
+     "status": "ok"
+    }
+   ],
+   "principal": 65000.0,
+   "interest": 14024.162630208324,
+   "balance": 79024.16263020833,
+   "principalSide": "Cr",
+   "interestSide": "Cr",
+   "balanceSide": "Cr"
+  }
+ },
+ {
+  "name": "mixed_dr_result",
+  "description": "Larger debit than credit gives Dr",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2024-04-10",
+    "particulars": "",
+    "debit": 90000,
+    "credit": null
+   },
+   {
+    "date": "2025-02-14",
+    "particulars": "",
+    "debit": null,
+    "credit": 20000
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -90000.0,
+     "T": 30.7,
+     "V": 5,
+     "W": 0.6999999999999993,
+     "interest": -40337.19744982908,
+     "status": "ok"
+    },
+    {
+     "amt": 20000.0,
+     "T": 20.566666666666666,
+     "V": 3,
+     "W": 2.5666666666666664,
+     "interest": 5643.07799479166,
+     "status": "ok"
+    }
+   ],
+   "principal": -70000.0,
+   "interest": -34694.11945503742,
+   "balance": -104694.11945503742,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "credits_only",
+  "description": "Only credits",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2025-03-03",
+    "particulars": "",
+    "debit": null,
+    "credit": 12345.67
+   },
+   {
+    "date": "2026-01-31",
+    "particulars": "",
+    "debit": null,
+    "credit": 800
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": 12345.67,
+     "T": 19.933333333333334,
+     "V": 3,
+     "W": 1.9333333333333336,
+     "interest": 3361.9611195834623,
+     "status": "ok"
+    },
+    {
+     "amt": 800.0,
+     "T": 9.0,
+     "V": 1,
+     "W": 3.0,
+     "interest": 92.25000000000011,
+     "status": "ok"
+    }
+   ],
+   "principal": 13145.67,
+   "interest": 3454.2111195834623,
+   "balance": 16599.881119583464,
+   "principalSide": "Cr",
+   "interestSide": "Cr",
+   "balanceSide": "Cr"
+  }
+ },
+ {
+  "name": "principal_zero_interest_pos",
+  "description": "Debit and equal credit at different times: principal 0",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2024-01-01",
+    "particulars": "",
+    "debit": 50000,
+    "credit": null
+   },
+   {
+    "date": "2025-01-01",
+    "particulars": "",
+    "debit": null,
+    "credit": 50000
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -50000.0,
+     "T": 34.0,
+     "V": 5,
+     "W": 4.0,
+     "interest": -25370.539624023426,
+     "status": "ok"
+    },
+    {
+     "amt": 50000.0,
+     "T": 22.0,
+     "V": 3,
+     "W": 4.0,
+     "interest": 15220.585937499993,
+     "status": "ok"
+    }
+   ],
+   "principal": 0.0,
+   "interest": -10149.953686523433,
+   "balance": -10149.953686523433,
+   "principalSide": "Cr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "month_end_jan31_to_feb28",
+  "description": "31 Jan -> 28 Feb non-leap (calc 2027-02-28)",
+  "settings": {
+   "calcDate": "2027-02-28",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2027-01-31",
+    "particulars": "",
+    "debit": 30000,
+    "credit": null
+   },
+   {
+    "date": "2026-08-31",
+    "particulars": "",
+    "debit": 30000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -30000.0,
+     "T": 0.9,
+     "V": 0,
+     "W": 0.9,
+     "interest": -337.5,
+     "status": "ok"
+    },
+    {
+     "amt": -30000.0,
+     "T": 5.9,
+     "V": 0,
+     "W": 5.9,
+     "interest": -2212.5,
+     "status": "ok"
+    }
+   ],
+   "principal": -60000.0,
+   "interest": -2550.0,
+   "balance": -62550.0,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "month_end_jan31_to_feb29",
+  "description": "31 Jan -> 29 Feb leap (calc 2028-02-29)",
+  "settings": {
+   "calcDate": "2028-02-29",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2028-01-31",
+    "particulars": "",
+    "debit": 30000,
+    "credit": null
+   },
+   {
+    "date": "2027-08-31",
+    "particulars": "",
+    "debit": 30000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -30000.0,
+     "T": 0.9333333333333333,
+     "V": 0,
+     "W": 0.9333333333333333,
+     "interest": -350.0,
+     "status": "ok"
+    },
+    {
+     "amt": -30000.0,
+     "T": 5.933333333333334,
+     "V": 0,
+     "W": 5.933333333333334,
+     "interest": -2225.0,
+     "status": "ok"
+    }
+   ],
+   "principal": -60000.0,
+   "interest": -2575.0,
+   "balance": -62575.0,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "month_end_31_to_30",
+  "description": "31st -> 30th (calc 2026-11-30)",
+  "settings": {
+   "calcDate": "2026-11-30",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2026-10-31",
+    "particulars": "",
+    "debit": 40000,
+    "credit": null
+   },
+   {
+    "date": "2026-05-31",
+    "particulars": "",
+    "debit": 40000,
+    "credit": null
+   },
+   {
+    "date": "2026-07-31",
+    "particulars": "",
+    "debit": null,
+    "credit": 1000
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -40000.0,
+     "T": 0.9666666666666667,
+     "V": 0,
+     "W": 0.9666666666666667,
+     "interest": -483.3333333333285,
+     "status": "ok"
+    },
+    {
+     "amt": -40000.0,
+     "T": 5.966666666666667,
+     "V": 0,
+     "W": 5.966666666666667,
+     "interest": -2983.3333333333358,
+     "status": "ok"
+    },
+    {
+     "amt": 1000.0,
+     "T": 3.966666666666667,
+     "V": 0,
+     "W": 3.966666666666667,
+     "interest": 49.58333333333326,
+     "status": "ok"
+    }
+   ],
+   "principal": -79000.0,
+   "interest": -3417.083333333331,
+   "balance": -82417.08333333333,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "leap_day_txn",
+  "description": "Txn on 29 Feb 2024",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2024-02-29",
+    "particulars": "",
+    "debit": 60000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -60000.0,
+     "T": 32.06666666666667,
+     "V": 5,
+     "W": 2.06666666666667,
+     "interest": -28362.985025878894,
+     "status": "ok"
+    }
+   ],
+   "principal": -60000.0,
+   "interest": -28362.985025878894,
+   "balance": -88362.9850258789,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "leap_year_calc",
+  "description": "Calc on 29 Feb 2028",
+  "settings": {
+   "calcDate": "2028-02-29",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2024-02-29",
+    "particulars": "",
+    "debit": 60000,
+    "credit": null
+   },
+   {
+    "date": "2027-03-01",
+    "particulars": "",
+    "debit": 1000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -60000.0,
+     "T": 48.0,
+     "V": 7,
+     "W": 6.0,
+     "interest": -47008.66953370052,
+     "status": "ok"
+    },
+    {
+     "amt": -1000.0,
+     "T": 11.933333333333334,
+     "V": 1,
+     "W": 5.933333333333334,
+     "interest": -154.72916666666674,
+     "status": "ok"
+    }
+   ],
+   "principal": -61000.0,
+   "interest": -47163.39870036719,
+   "balance": -108163.3987003672,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "approx_0_5",
+  "description": "approx 0.5: mod below tolerance lowers V",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0.5
+  },
+  "txns": [
+   {
+    "date": "2026-04-20",
+    "particulars": "",
+    "debit": 10000,
+    "credit": null
+   },
+   {
+    "date": "2026-04-10",
+    "particulars": "",
+    "debit": 10000,
+    "credit": null
+   },
+   {
+    "date": "2026-05-01",
+    "particulars": "",
+    "debit": 10000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -10000.0,
+     "T": 6.366666666666667,
+     "V": 0,
+     "W": 6.366666666666667,
+     "interest": -795.8333333333339,
+     "status": "ok"
+    },
+    {
+     "amt": -10000.0,
+     "T": 6.7,
+     "V": 1,
+     "W": 0.7000000000000002,
+     "interest": -844.0625,
+     "status": "ok"
+    },
+    {
+     "amt": -10000.0,
+     "T": 6.0,
+     "V": 0,
+     "W": 6.0,
+     "interest": -750.0,
+     "status": "ok"
+    }
+   ],
+   "principal": -30000.0,
+   "interest": -2389.895833333334,
+   "balance": -32389.895833333336,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "approx_1",
+  "description": "approx 1: more rows fall into the tolerance",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 1
+  },
+  "txns": [
+   {
+    "date": "2026-04-05",
+    "particulars": "",
+    "debit": 10000,
+    "credit": null
+   },
+   {
+    "date": "2026-03-01",
+    "particulars": "",
+    "debit": 10000,
+    "credit": null
+   },
+   {
+    "date": "2025-11-01",
+    "particulars": "",
+    "debit": 10000,
+    "credit": null
+   },
+   {
+    "date": "2026-10-01",
+    "particulars": "",
+    "debit": 10000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -10000.0,
+     "T": 6.866666666666666,
+     "V": 0,
+     "W": 6.866666666666666,
+     "interest": -858.3333333333339,
+     "status": "ok"
+    },
+    {
+     "amt": -10000.0,
+     "T": 8.0,
+     "V": 1,
+     "W": 2.0,
+     "interest": -1018.7499999999982,
+     "status": "ok"
+    },
+    {
+     "amt": -10000.0,
+     "T": 12.0,
+     "V": 1,
+     "W": 6.0,
+     "interest": -1556.25,
+     "status": "ok"
+    },
+    {
+     "amt": -10000.0,
+     "T": 1.0,
+     "V": -1,
+     "W": 7.0,
+     "interest": -116.27906976744089,
+     "status": "ok"
+    }
+   ],
+   "principal": -40000.0,
+   "interest": -3549.612403100773,
+   "balance": -43549.61240310077,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "approx_exact_boundary",
+  "description": "approx 0.5 with mod exactly == approx (not >)",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0.5
+  },
+  "txns": [
+   {
+    "date": "2026-04-16",
+    "particulars": "",
+    "debit": 10000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -10000.0,
+     "T": 6.5,
+     "V": 0,
+     "W": 6.5,
+     "interest": -812.5,
+     "status": "ok"
+    }
+   ],
+   "principal": -10000.0,
+   "interest": -812.5,
+   "balance": -10812.5,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "comp_1",
+  "description": "comp = 1 month",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 1,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2026-02-10",
+    "particulars": "",
+    "debit": 25000,
+    "credit": null
+   },
+   {
+    "date": "2026-10-20",
+    "particulars": "",
+    "debit": 25000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -25000.0,
+     "T": 8.7,
+     "V": 8,
+     "W": 0.6999999999999993,
+     "interest": -2853.7588641687325,
+     "status": "ok"
+    },
+    {
+     "amt": -25000.0,
+     "T": 0.3666666666666667,
+     "V": 0,
+     "W": 0.3666666666666667,
+     "interest": -114.58333333333576,
+     "status": "ok"
+    }
+   ],
+   "principal": -50000.0,
+   "interest": -2968.3421975020683,
+   "balance": -52968.34219750207,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "comp_12",
+  "description": "comp = 12 months",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 12,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2025-11-01",
+    "particulars": "",
+    "debit": 25000,
+    "credit": null
+   },
+   {
+    "date": "2025-02-10",
+    "particulars": "",
+    "debit": 25000,
+    "credit": null
+   },
+   {
+    "date": "2026-06-15",
+    "particulars": "",
+    "debit": 25000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -25000.0,
+     "T": 12.0,
+     "V": 0,
+     "W": 12.0,
+     "interest": -3749.9999999999964,
+     "status": "ok"
+    },
+    {
+     "amt": -25000.0,
+     "T": 20.7,
+     "V": 1,
+     "W": 8.7,
+     "interest": -6876.562499999993,
+     "status": "ok"
+    },
+    {
+     "amt": -25000.0,
+     "T": 4.533333333333333,
+     "V": 0,
+     "W": 4.533333333333333,
+     "interest": -1416.6666666666679,
+     "status": "ok"
+    }
+   ],
+   "principal": -75000.0,
+   "interest": -12043.229166666657,
+   "balance": -87043.22916666666,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "roi_2",
+  "description": "ROI 2 per month",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 2,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2025-06-12",
+    "particulars": "",
+    "debit": 100000,
+    "credit": null
+   },
+   {
+    "date": "2026-01-01",
+    "particulars": "",
+    "debit": null,
+    "credit": 30000
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -100000.0,
+     "T": 16.633333333333333,
+     "V": 2,
+     "W": 4.633333333333333,
+     "interest": -37064.10666666669,
+     "status": "ok"
+    },
+    {
+     "amt": 30000.0,
+     "T": 10.0,
+     "V": 1,
+     "W": 4.0,
+     "interest": 6288.0,
+     "status": "ok"
+    }
+   ],
+   "principal": -70000.0,
+   "interest": -30776.10666666669,
+   "balance": -100776.10666666669,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "future_rows",
+  "description": "Future-dated rows: interest 0, status future",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2026-02-10",
+    "particulars": "",
+    "debit": 70000,
+    "credit": null
+   },
+   {
+    "date": "2026-12-15",
+    "particulars": "",
+    "debit": 5000,
+    "credit": null
+   },
+   {
+    "date": "2027-01-01",
+    "particulars": "",
+    "debit": null,
+    "credit": 9000
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -70000.0,
+     "T": 8.7,
+     "V": 1,
+     "W": 2.6999999999999993,
+     "interest": -7789.6875,
+     "status": "ok"
+    },
+    {
+     "amt": -5000.0,
+     "T": -1.4666666666666668,
+     "V": null,
+     "W": null,
+     "interest": 0.0,
+     "status": "future"
+    },
+    {
+     "amt": 9000.0,
+     "T": -2.0,
+     "V": null,
+     "W": null,
+     "interest": 0.0,
+     "status": "future"
+    }
+   ],
+   "principal": -66000.0,
+   "interest": -7789.6875,
+   "balance": -73789.6875,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "future_same_month_later_day",
+  "description": "Later day in same month is future (T=-0.1)",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2026-11-04",
+    "particulars": "",
+    "debit": 3000,
+    "credit": null
+   },
+   {
+    "date": "2026-11-01",
+    "particulars": "",
+    "debit": 3000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -3000.0,
+     "T": -0.1,
+     "V": null,
+     "W": null,
+     "interest": 0.0,
+     "status": "future"
+    },
+    {
+     "amt": -3000.0,
+     "T": 0.0,
+     "V": -1,
+     "W": 6.0,
+     "interest": 0.0,
+     "status": "ok"
+    }
+   ],
+   "principal": -6000.0,
+   "interest": 0.0,
+   "balance": -6000.0,
+   "principalSide": "Dr",
+   "interestSide": "Cr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "missing_dates",
+  "description": "Rows with amount but no date: nodate, excluded from totals",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2026-02-10",
+    "particulars": "",
+    "debit": 70000,
+    "credit": null
+   },
+   {
+    "date": null,
+    "particulars": "",
+    "debit": 1000,
+    "credit": null
+   },
+   {
+    "date": "",
+    "particulars": "no date",
+    "debit": null,
+    "credit": 2500
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -70000.0,
+     "T": 8.7,
+     "V": 1,
+     "W": 2.6999999999999993,
+     "interest": -7789.6875,
+     "status": "ok"
+    },
+    {
+     "amt": -1000.0,
+     "T": null,
+     "V": null,
+     "W": null,
+     "interest": 0.0,
+     "status": "nodate"
+    },
+    {
+     "amt": 2500.0,
+     "T": null,
+     "V": null,
+     "W": null,
+     "interest": 0.0,
+     "status": "nodate"
+    }
+   ],
+   "principal": -70000.0,
+   "interest": -7789.6875,
+   "balance": -77789.6875,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "empty_rows",
+  "description": "Completely empty rows",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": null,
+    "particulars": "",
+    "debit": null,
+    "credit": null
+   },
+   {
+    "date": "2025-05-05",
+    "particulars": "",
+    "debit": 10000,
+    "credit": null
+   },
+   {
+    "date": null,
+    "particulars": "",
+    "debit": null,
+    "credit": null
+   },
+   {
+    "date": "",
+    "particulars": "",
+    "debit": null,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": 0.0,
+     "T": null,
+     "V": null,
+     "W": null,
+     "interest": 0.0,
+     "status": "empty"
+    },
+    {
+     "amt": -10000.0,
+     "T": 17.866666666666667,
+     "V": 2,
+     "W": 5.866666666666667,
+     "interest": -2403.7083333333303,
+     "status": "ok"
+    },
+    {
+     "amt": 0.0,
+     "T": null,
+     "V": null,
+     "W": null,
+     "interest": 0.0,
+     "status": "empty"
+    },
+    {
+     "amt": 0.0,
+     "T": null,
+     "V": null,
+     "W": null,
+     "interest": 0.0,
+     "status": "empty"
+    }
+   ],
+   "principal": -10000.0,
+   "interest": -2403.7083333333303,
+   "balance": -12403.70833333333,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "all_empty",
+  "description": "No transactions with data",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": null,
+    "particulars": "",
+    "debit": null,
+    "credit": null
+   },
+   {
+    "date": null,
+    "particulars": "",
+    "debit": null,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": 0.0,
+     "T": null,
+     "V": null,
+     "W": null,
+     "interest": 0.0,
+     "status": "empty"
+    },
+    {
+     "amt": 0.0,
+     "T": null,
+     "V": null,
+     "W": null,
+     "interest": 0.0,
+     "status": "empty"
+    }
+   ],
+   "principal": 0.0,
+   "interest": 0.0,
+   "balance": 0.0,
+   "principalSide": "Cr",
+   "interestSide": "Cr",
+   "balanceSide": "Cr"
+  }
+ },
+ {
+  "name": "no_rows",
+  "description": "Empty list",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [],
+  "expected": {
+   "rows": [],
+   "principal": 0,
+   "interest": 0,
+   "balance": 0,
+   "principalSide": "Cr",
+   "interestSide": "Cr",
+   "balanceSide": "Cr"
+  }
+ },
+ {
+  "name": "long_span_12y",
+  "description": "Long span 12+ years, comp 6",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2014-03-17",
+    "particulars": "",
+    "debit": 100000,
+    "credit": null
+   },
+   {
+    "date": "2012-12-31",
+    "particulars": "",
+    "debit": null,
+    "credit": 25000
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -100000.0,
+     "T": 151.46666666666667,
+     "V": 25,
+     "W": 1.4666666666666686,
+     "interest": -521014.2505614498,
+     "status": "ok"
+    },
+    {
+     "amt": 25000.0,
+     "T": 166.0,
+     "V": 27,
+     "W": 4.0,
+     "interest": 159994.08501726578,
+     "status": "ok"
+    }
+   ],
+   "principal": -75000.0,
+   "interest": -361020.16554418404,
+   "balance": -436020.16554418404,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "long_span_20y_comp12",
+  "description": "Long span 20+ years, comp 12, ROI 1.5",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.5,
+   "comp": 12,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2005-07-09",
+    "particulars": "",
+    "debit": 50000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -50000.0,
+     "T": 255.73333333333332,
+     "V": 21,
+     "W": 3.73333333333332,
+     "interest": -1656695.6279804462,
+     "status": "ok"
+    }
+   ],
+   "principal": -50000.0,
+   "interest": -1656695.6279804462,
+   "balance": -1706695.6279804462,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "different_calc_year_boundary",
+  "description": "Calc date early in Jan, txns in prior year",
+  "settings": {
+   "calcDate": "2027-01-05",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2026-12-20",
+    "particulars": "",
+    "debit": 10000,
+    "credit": null
+   },
+   {
+    "date": "2026-07-05",
+    "particulars": "",
+    "debit": 10000,
+    "credit": null
+   },
+   {
+    "date": "2026-01-05",
+    "particulars": "",
+    "debit": 10000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -10000.0,
+     "T": 0.5,
+     "V": 0,
+     "W": 0.5,
+     "interest": -62.5,
+     "status": "ok"
+    },
+    {
+     "amt": -10000.0,
+     "T": 6.0,
+     "V": 0,
+     "W": 6.0,
+     "interest": -750.0,
+     "status": "ok"
+    },
+    {
+     "amt": -10000.0,
+     "T": 12.0,
+     "V": 1,
+     "W": 6.0,
+     "interest": -1556.25,
+     "status": "ok"
+    }
+   ],
+   "principal": -30000.0,
+   "interest": -2368.75,
+   "balance": -32368.75,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ }
+]

@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+# The workbook contains private data; regenerate with excel/build_fixed.py
+*.xlsx
