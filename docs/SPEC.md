@@ -316,3 +316,58 @@ The People dropdown popover is replaced by a full **People page**, a view swap l
 - **Rows:** `people-item` (each row; keep this testid), `people-delete`, plus the existing `confirm-yes` / `confirm-no`.
 - **`people-due`:** a span inside each row holding that row's amount due (formatted, e.g. "1,55,579.38").
 - **`people-total-due`:** a span inside the summary holding the total due.
+
+## v12: Debit and Credit kept in separate sections, no minus signs (owner feedback)
+The owner wants loans given (Debit) and repayments received (Credit) kept apart everywhere, the way the Excel has separate
+Debit and Credit columns. No amount anywhere in the app or the printout shows a minus sign. The data model
+(`entries[].type` = `loan` | `repayment`, positive `amount`), storage key, calc engine and totals do not change.
+
+- **Entry form (section 3):** the Type dropdown and the single Amount box are replaced by two amount boxes.
+  - **Order:** Date | Particulars (optional) | Debit (₹) | Credit (₹) | Add/Update. "Particulars" is the old Note field, renamed.
+  - **Labels:** "Debit (₹)" with a small muted line "Loan given" under it; "Credit (₹)" with "Repayment received".
+  - **One per row:** typing in one box clears the other, so a row is either Debit or Credit, never both.
+  - **Validation:** if both are empty, the error "Enter the amount under Debit or Credit" shows on Debit (focus goes there).
+    A non-number or zero shows "Enter a number above zero" on the box that has it. Date errors stay as before.
+  - **Saving:** a Debit amount saves as `type: 'loan'`, a Credit amount as `type: 'repayment'`.
+  - **Edit:** loads the amount into the Debit box for a loan, the Credit box for a repayment (the other box is empty).
+  - **Narrow screens (< 760px):** Date and Particulars on one line, Debit and Credit on the next, then the buttons.
+- **Loan list:** two sub-sections, Debit first, each in date order, rendered whenever the person has at least one entry.
+  - **Headings:** "Debit · Loans given" and "Credit · Repayments received", in the quiet section-label style (small caps, muted, a thin rule; no coloured banner).
+  - **Columns:** each sub-section has its own column header (Date | Particulars | Amount | Interest | Total | actions).
+  - **Signs:** every amount, interest and total is positive (absolute value). Credit rows keep their existing green number colour.
+  - **Subtotal:** each sub-section ends with a subtotal row: "Total debit" / "Total credit", with sums of Amount, Interest and Total
+    over that section's rows that are counted in the totals (status ok or future; future rows add 0 interest).
+  - **Empty section:** if a section has no rows, show one muted line: "No loans given yet." / "No repayments yet." and no subtotal.
+  - Each row keeps `data-testid="loan-row"` and its `data-i` = index into `entries`, so Edit/Delete work unchanged.
+  - Flagged rows (future, date missing) stay in their own section with their message.
+- **Result column breakdown:** the same split inside the one table: a section header row "Debit · Loans given",
+  its `result-row`s, a subtotal row "Total debit"; then "Credit · Repayments received", its rows and "Total credit".
+  A section with no rows is omitted here. All figures positive. The totals block below is unchanged
+  (Total principal, Total interest, Amount due from / payable to).
+- **Print:**
+  - **Default principal list:** split into the same two sections (each with its heading, its `print-principal-row`s in date order,
+    and a "Total debit" / "Total credit" subtotal of Amount). A section with no rows is omitted. No minus signs.
+  - **"Include loan-wise breakdown":** the breakdown table is split the same way as the result column.
+  - Everything else in the printout stays as v7.
+- **Nowhere** (loan list, result column, print) may the text contain the minus character "−" or a leading "-" before an amount.
+
+### Test hooks (v12)
+- **Form:** `loan-debit` and `loan-credit` (inputs) replace `loan-amount` and `loan-type`, which are removed. `loan-note` stays (now labelled Particulars).
+- **Loan list:** `loan-group-debit`, `loan-group-credit` (the wrapper of each sub-section, containing its rows);
+  `loan-subtotal-debit`, `loan-subtotal-credit` (the subtotal row; it contains a span `data-testid="subtotal-amount"` with the formatted amount sum).
+- **Result column:** `result-group-debit`, `result-group-credit` (section header rows); `result-subtotal-debit`, `result-subtotal-credit` (subtotal rows).
+- **Print:** `print-group-debit`, `print-group-credit` (section header rows in the principal list and the breakdown);
+  `print-subtotal-debit`, `print-subtotal-credit` (subtotal rows, each with a `subtotal-amount` span).
+
+### v12.1: colour the Debit and Credit headings (owner feedback)
+- The section headings ("Debit · Loans given" / "Credit · Repayments received") in the loan list and the result column get a quiet tinted strip.
+  - Debit: terracotta text `#9a4a1f` on `#fbf3ee`. Credit: the existing green `--good` on `#eef6f1`.
+  - Each strip has a 3px left bar in its colour. It's a subtle label strip, not a banner.
+- The heading elements carry class `debit` / `credit`. Testids are unchanged.
+- **Print:** headings stay plain black (no tint), as before.
+
+### v12.2: print Particulars shows only what the user typed (owner feedback)
+- In the default printout's principal list, the Particulars cell holds only the entry's note (Particulars).
+  - With no note, the cell is blank. There is no automatic "Loan given" / "Repayment received", because the Debit/Credit section headings already say that.
+  - A future-dated entry still shows the muted "(after calculation date)" flag.
+- The on-screen lists and the "Include loan-wise breakdown" table are unchanged.

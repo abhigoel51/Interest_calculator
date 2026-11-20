@@ -181,15 +181,15 @@ async function main() {
       }
     };
 
-    const formState = () => ev(`JSON.stringify({date:__q('loan-date').value,amount:__q('loan-amount').value,type:__q('loan-type').value,note:__q('loan-note').value,btn:__txt('add-loan'),cancel:!!__q('loan-cancel')&&__q('loan-cancel').offsetParent!==null})`).then(JSON.parse);
+    const formState = () => ev(`JSON.stringify({date:__q('loan-date').value,debit:__q('loan-debit').value,credit:__q('loan-credit').value,amount:(__q('loan-debit').value||__q('loan-credit').value),type:(__q('loan-credit').value?'repayment':'loan'),note:__q('loan-note').value,btn:__txt('add-loan'),cancel:!!__q('loan-cancel')&&__q('loan-cancel').offsetParent!==null})`).then(JSON.parse);
     const fillForm = (date, amount, type, note) => ev(`(() => {
       __set(__q('loan-date'), ${JSON.stringify(date)});
-      __set(__q('loan-amount'), ${JSON.stringify(String(amount))});
-      __set(__q('loan-type'), ${JSON.stringify(type)}, true);
+      __set(__q(${JSON.stringify(type === 'repayment' ? 'loan-debit' : 'loan-credit')}), '');
+      __set(__q(${JSON.stringify(type === 'repayment' ? 'loan-credit' : 'loan-debit')}), ${JSON.stringify(String(amount))});
       __set(__q('loan-note'), ${JSON.stringify(note || '')}); })()`);
     const assertFormCleared = async (label) => {
       const f = await formState();
-      if (f.date || f.amount || f.note) throw new Error(`${label}: form not cleared: ` + JSON.stringify(f));
+      if (f.date || f.debit || f.credit || f.note) throw new Error(`${label}: form not cleared: ` + JSON.stringify(f));
       if (f.btn !== 'Add') throw new Error(`${label}: add button text "${f.btn}", expected Add`);
     };
     const addLoan = async (date, amount, type, note) => {
@@ -251,7 +251,7 @@ async function main() {
       const after = await readTotals();
       expectNum('total-interest unchanged', after.interest, before.interest);
       expectNum('amount-due (+5000 principal only)', after.due, before.due + 5000);
-      const txt = await ev(`Array.from(document.querySelectorAll('[data-testid="result-row"]')).pop().textContent.replace(/\\s+/g,' ')`);
+      const txt = await ev(`Array.from(document.querySelectorAll('[data-testid="result-row"]')).find(r => /15-12-2026/.test(r.textContent)).textContent.replace(/\\s+/g,' ')`);
       if (!/after|future|not yet/i.test(txt) && !/\b0\.00\b/.test(txt)) throw new Error('future row shows no note/zero interest: ' + txt);
     });
 
@@ -266,7 +266,7 @@ async function main() {
       if (num(f.amount) !== 20000) throw new Error('form amount not loaded: ' + f.amount);
       if (f.type !== 'repayment') throw new Error('form type not loaded: ' + f.type);
       if (!/10[-\/.]0?5[-\/.]2026|2026-05-10/.test(f.date)) throw new Error('form date not loaded: ' + f.date);
-      await ev(`__set(__q('loan-amount'), '10000')`);
+      await ev(`__set(__q('loan-credit'), '10000')`);
       await ev(`__q('add-loan').click()`);
       await settle();
       const n = await ev(`__rows().length`);
@@ -316,7 +316,7 @@ async function main() {
     // g. delete with in-page confirm
     await run('g. delete: confirm-no keeps row, confirm-yes removes it and updates totals', async () => {
       const n = await ev(`__rows().length`); const before = await readTotals();
-      const delLast = () => ev(`(() => { const rs = __rows(); __q('loan-delete', rs[rs.length - 1]).click(); return true; })()`);
+      const delLast = () => ev(`(() => { const r = __rows().find(r => /15-12-2026/.test(r.textContent)); __q('loan-delete', r).click(); return true; })()`);
       await delLast(); await settle();
       if (!(await ev(`!!__q('confirm-yes') && !!__q('confirm-no')`))) throw new Error('confirm-yes/confirm-no not shown after loan-delete');
       await ev(`__q('confirm-no').click()`); await settle();
@@ -324,7 +324,7 @@ async function main() {
       let t = await readTotals();
       expectNum('amount-due after confirm-no', t.due, before.due);
       if (await ev(`!!__q('confirm-yes')`)) throw new Error('confirm buttons still present after confirm-no');
-      // now really delete the (last, future-dated 5000) row
+      // now really delete the future-dated 5000 row
       await delLast(); await settle();
       await ev(`__q('confirm-yes').click()`); await settle(); await sleep(200);
       if ((await ev(`__rows().length`)) !== n - 1) throw new Error('row not removed after confirm-yes');
@@ -461,7 +461,7 @@ async function main() {
       try {
         await settle();
         if (!(await ev(visible('print-breakdown')))) throw new Error('print-breakdown not visible under print media when ticked');
-        const rows = await ev(`(() => { const t = __q('print-breakdown'); const b = t.querySelectorAll('tbody tr'); return b.length || Math.max(0, t.querySelectorAll('tr').length - 1); })()`);
+        const rows = await ev(`(() => { const t = __q('print-breakdown'); return t.querySelectorAll('tbody tr:not(.grp):not(.subt)').length; })()`);
         if (rows !== 2) throw new Error('print-breakdown rows: ' + rows + ', expected 2');
         if (await ev(`!!__q('print-principal-list') && (${visible('print-principal-list')})`)) throw new Error('print-principal-list visible while breakdown ticked');
       } finally { await setPrint(false); }
@@ -635,7 +635,7 @@ async function main() {
       if (/Sample Person/.test(names || '')) throw new Error('sample person re-seeded in storage');
     });
 
-    await run('t. print principal list: order, notes, repayment sign, future note, interest matches screen', async () => {
+    await run('t. print principal list: order, notes only (blank otherwise), repayment sign, future note, interest matches screen', async () => {
       await reseed();
       await ev(`__q('menu-more').click(); true`); await settle();
       await ev(`__q('start-fresh').click(); true`); await settle();
@@ -653,10 +653,15 @@ async function main() {
         const rows = await ev(`Array.from(document.querySelectorAll('[data-testid="print-principal-row"]')).map(r => r.textContent.replace(/\\s+/g, ' ').trim())`);
         if (rows.length !== 4) throw new Error('rows: ' + rows.length + ' ' + JSON.stringify(rows));
         const dates = ['02-03-2024', '01-09-2025', '01-06-2026', '15-12-2026'];
-        dates.forEach((d, i) => { if (!rows[i].includes(d)) throw new Error(`row ${i} should contain ${d}: ${JSON.stringify(rows)}`); });
-        if (!rows[1].includes('Shop advance')) throw new Error('row 1 missing note: ' + rows[1]);
-        if (!/[\u2212-]\s*2,000\.00/.test(rows[2])) throw new Error('repayment row lacks minus sign: ' + rows[2]);
-        if (!rows[3].includes('after calculation date')) throw new Error('future row lacks note: ' + rows[3]);
+        const byDate = (d) => { const r = rows.find((x) => x.includes(d)); if (!r) throw new Error(`no row contains ${d}: ${JSON.stringify(rows)}`); return r; };
+        dates.forEach(byDate);
+        if (!byDate('01-09-2025').includes('Shop advance')) throw new Error('row missing note: ' + byDate('01-09-2025'));
+        const rep = byDate('01-06-2026');
+        if (!/2,000\.00/.test(rep) || /[\u2212]|(^|\s)-\d/.test(rep)) throw new Error('repayment row should be positive 2,000.00 with no minus: ' + rep);
+        if (!byDate('15-12-2026').includes('after calculation date')) throw new Error('future row lacks note: ' + byDate('15-12-2026'));
+        // v12.2: Particulars prints only the user's note; no auto "Loan given"/"Repayment received"
+        if (rows.some((x) => /Loan given|Repayment received/.test(x))) throw new Error('auto type label printed in Particulars: ' + JSON.stringify(rows));
+        if (byDate('02-03-2024').replace(/\s+/g, '') !== '02-03-2024700.00') throw new Error('row without note should have blank Particulars: ' + byDate('02-03-2024'));
         expectNum('print-interest vs screen', num(await ev(`__txt('print-interest')`)), screenInterest);
       } finally { await setPrint(false); }
     });
@@ -956,6 +961,75 @@ async function main() {
       must(await pv(), 'people-view hidden with History open');
       must(!(await histVisible()), 'history-view still visible with People open');
       await click('people-back');
+    });
+
+    await run('y. Debit/Credit sections, no minus signs (v12)', async () => {
+      const must = (c, m) => { if (!c) throw new Error(m); };
+      await reseed();
+      await ev(`__q('menu-more').click(); true`); await settle();
+      await ev(`__q('start-fresh').click(); true`); await settle();
+      await ev(`__q('fresh-confirm').click(); true`); await settle();
+      await stubPrint();
+      await ev(`__set(__q('person-name'), 'Debit Credit Tester'); true`);
+      await ev(`__set(__q('calc-date'), '01-11-2026'); true`); await settle();
+      must(await ev(`!__q('loan-amount') && !__q('loan-type')`), 'loan-amount / loan-type still exist');
+      must(await ev(`!!__q('loan-debit') && !!__q('loan-credit')`), 'loan-debit / loan-credit missing');
+      // typing in one clears the other
+      await ev(`(() => { const e = __q('loan-debit'); e.focus(); e.value = '500'; e.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`); await settle();
+      await ev(`(() => { const e = __q('loan-credit'); e.focus(); e.value = '300'; e.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`); await settle();
+      let f = await formState();
+      must(f.debit === '' && f.credit === '300', 'typing credit should clear debit: ' + JSON.stringify(f));
+      await ev(`(() => { const e = __q('loan-debit'); e.focus(); e.value = '700'; e.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`); await settle();
+      f = await formState();
+      must(f.credit === '' && f.debit === '700', 'typing debit should clear credit: ' + JSON.stringify(f));
+      // both empty -> error, no new row
+      await ev(`__set(__q('loan-debit'), ''); __set(__q('loan-credit'), ''); true`);
+      await ev(`__set(__q('loan-date'), '10-02-2026'); true`);
+      const n0 = await ev(`__rows().length`);
+      await ev(`__q('add-loan').click(); true`); await settle();
+      must((await ev(`__rows().length`)) === n0, 'row added with both amounts empty');
+      must(await ev(`!!document.querySelector('[data-testid="form-error"]') && /Debit or Credit/i.test(document.querySelector('[data-testid="form-error"]').textContent)`), 'no "Debit or Credit" error shown');
+      await ev(`__set(__q('loan-date'), ''); true`);
+      await addLoan('10-02-2026', 70000, 'loan');
+      await addLoan('10-02-2026', 70000, 'loan');
+      await addLoan('01-06-2026', 20000, 'repayment');
+      const cnt = (g) => ev(`(() => { const g = __q(${JSON.stringify(g)}); return g ? Array.from(g.querySelectorAll('[data-testid="loan-row"]')).length : -1; })()`);
+      must((await cnt('loan-group-debit')) === 2, 'loan-group-debit rows: ' + (await cnt('loan-group-debit')));
+      must((await cnt('loan-group-credit')) === 1, 'loan-group-credit rows: ' + (await cnt('loan-group-credit')));
+      const sub = (id) => ev(`(() => { const r = __q(${JSON.stringify(id)}); const a = r && __q('subtotal-amount', r); return a ? a.textContent.trim() : null; })()`);
+      must((await sub('loan-subtotal-debit')) === '1,40,000.00', 'debit subtotal: ' + (await sub('loan-subtotal-debit')));
+      must((await sub('loan-subtotal-credit')) === '20,000.00', 'credit subtotal: ' + (await sub('loan-subtotal-credit')));
+      for (const id of ['result-group-debit', 'result-group-credit', 'result-subtotal-debit', 'result-subtotal-credit'])
+        must(await ev(`!!__q(${JSON.stringify(id)})`), id + ' missing');
+      const t = await readTotals();
+      expectNum('total-principal (net)', t.principal, 120000);
+      const NOMINUS = /−|(^|\s)-\d/;
+      const checkNoMinus = async (label) => {
+        for (const sel of ['#loans', '#rTable', '#printArea']) {
+          const tx = await ev(`(document.querySelector(${JSON.stringify(sel)}) || {}).textContent || ''`);
+          must(!NOMINUS.test(tx), `${label}: minus sign in ${sel}: ` + (tx.match(/.{0,20}(−|(^|\s)-\d).{0,20}/) || [''])[0]);
+        }
+      };
+      await checkNoMinus('screen');
+      const printIds = ['print-group-debit', 'print-group-credit', 'print-subtotal-debit', 'print-subtotal-credit'];
+      await setPrint(true);
+      try {
+        await settle();
+        for (const id of printIds) must(await ev(`!!__q(${JSON.stringify(id)})`), 'default print: ' + id + ' missing');
+        await checkNoMinus('print default');
+        await ev(`__q('print-include-breakdown').click(); true`); await settle();
+        must(await ev(`__q('print-include-breakdown').checked`), 'breakdown checkbox not ticked');
+        for (const id of printIds) must(await ev(`!!__q(${JSON.stringify(id)})`), 'breakdown print: ' + id + ' missing');
+        await checkNoMinus('print breakdown');
+        await ev(`__q('print-include-breakdown').click(); true`); await settle();
+      } finally { await setPrint(false); }
+      // edit the repayment -> loan-credit holds it, debit empty; then cancel
+      await editRowMatching('/20,?000/');
+      f = await formState();
+      must(f.credit === '20000' && f.debit === '', 'edit repayment form: ' + JSON.stringify(f));
+      await ev(`__q('loan-cancel').click(); true`); await settle();
+      await assertFormCleared('after cancel edit (y)');
+      must((await ev(`__rows().length`)) === 3, 'row count after cancel');
     });
 
     // i. JS errors and native dialogs

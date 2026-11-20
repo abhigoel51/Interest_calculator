@@ -3,8 +3,8 @@
 Interest calculator for a non-technical, elderly user (the owner's father) on a **Windows PC**. It replaces
 the original Excel at `~/Downloads/Intrest_package.xlsx` (sheets `Inputs`, `Print Format`). Never modify that original.
 
-## Status (2026-11-13)
-v11 has been delivered and is waiting on the father's first real-use feedback. Expect UX tweaks next, not a rewrite.
+## Status (2026-11-20)
+v12 (Debit/Credit kept apart, no minus signs) is delivered, based on the first real-use feedback. Expect UX tweaks next, not a rewrite.
 
 ## Files
 - `app/InterestCalculator.html`: **the product.** One self-contained offline file (vanilla HTML/CSS/JS, no CDN).
@@ -38,13 +38,13 @@ v11 has been delivered and is waiting on the father's first real-use feedback. E
 - The `<script id="calc-engine">` block (`computeRow`, `computeAll`) is what the tests load. Keep it pure, and keep it
   byte-identical unless the calculation itself is meant to change.
 
-## Current app behaviour (v11)
+## Current app behaviour (v12)
 - **Layout:** one screen with sections 1 Person, 2 Interest terms and 3 Loans, plus a sticky result column on wide screens.
-- **Loans:** one entry form (Date, Amount, Type, Note, Add/Update) above a compact one-line list with Edit/Delete.
+- **Loans (v12):** one entry form (Date, Particulars, Debit ₹, Credit ₹, Add/Update; fill one amount box, typing in one clears the other). Below it the list is split into a "Debit · Loans given" and a "Credit · Repayments received" sub-section, each with a subtotal. The headings are tinted strips (terracotta / green). No minus signs anywhere.
 - **Result column:** a per-loan breakdown plus Total principal, Total interest, and "Amount due from <name>" (plain words, no Dr/Cr).
 - **Dates:** a custom in-app calendar (large, closes on pick). Dates can also be typed as dd-mm-yyyy.
 - **Print (v7):** the default printout shows: name, "interest calculated up to", and the period in months since the first loan.
-  - Then a principal list (Date | Particulars | Amount per entry, with no per-entry interest).
+  - Then a principal list split into Debit and Credit sections with subtotals (Date | Particulars | Amount, no per-entry interest). Particulars prints only the user's note, blank otherwise (v12.2).
   - Then Total principal, ONE Total interest figure, the amount due and "Printed on".
   - It never prints the rate.
   - Ticking "Include loan-wise breakdown" (not saved) replaces the principal list with the full per-loan table.

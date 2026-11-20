@@ -9,6 +9,7 @@
   --page:#f7f7f5; --surface:#fff; --line:#e6e4df; --line-strong:#d4d1ca;
   --ink:#1c1c1a; --muted:#6b6860; --accent:#1f4d3a; --accent-hover:#183c2d;
   --focus:rgba(31,77,58,.28); --good:#1d6b43; --warn:#8a5a00; --bad:#a3321f;
+  --debit:#9a4a1f; --debit-bg:#fbf3ee; --credit-bg:#eef6f1;
 }
 *{box-sizing:border-box}
 html{font-size:17px}
@@ -120,8 +121,8 @@ details.more .body{margin-top:12px;max-width:50%}
 .btn:focus-visible,.item:focus-visible,.cal:focus-visible,summary:focus-visible{outline:none;box-shadow:0 0 0 3px var(--focus)}
 
 /* loans: entry form + compact list */
-.lform{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr) minmax(0,1.3fr);gap:12px 12px;align-items:start;padding-bottom:20px;border-bottom:1px solid var(--line-strong)}
-.lform .note{grid-column:1 / span 2}
+.lform{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,.9fr) minmax(0,.9fr) auto;gap:12px 12px;align-items:start;padding-bottom:20px;border-bottom:1px solid var(--line-strong)}
+.lform .hint{display:block;font-size:13px;color:var(--muted);margin-top:3px;line-height:1.2}
 .lform .acts{display:flex;align-items:center;gap:12px;height:44px;align-self:end}
 .lform .acts .btn.primary{min-width:96px}
 .lform.editing{background:#f4f8f5;margin:-8px -12px 0;padding:8px 12px 20px;border-radius:8px}
@@ -151,8 +152,21 @@ details.more .body{margin-top:12px;max-width:50%}
 .lact .btn.yes:hover{background:#862a1a}
 .lact .btn.no{height:36px;padding:0 14px;font-size:15px;color:var(--ink);border-color:var(--line-strong)}
 .empty-note{color:var(--muted);padding:16px 0 0}
+.grp-h{padding:18px 0 0;font-size:12.5px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--line-strong);padding-bottom:6px}
+.grp-h:first-child{padding-top:14px}
+.grp-h.debit,tr.grp.debit td{color:var(--debit);background:var(--debit-bg);box-shadow:inset 3px 0 0 var(--debit)}
+.grp-h.credit,tr.grp.credit td{color:var(--good);background:var(--credit-bg);box-shadow:inset 3px 0 0 var(--good)}
+.grp-h.debit,.grp-h.credit{padding:8px 10px;margin-top:14px;border-radius:4px;border-bottom:0}
+.grp-h.debit:first-child{margin-top:10px}
+tr.grp.debit td,tr.grp.credit td{padding:8px 10px;border-bottom:0}
+.grp-empty{color:var(--muted);font-size:15px;padding:10px 0 4px}
+.lsub{display:grid;grid-template-columns:84px minmax(0,1fr) 106px 106px 126px 96px;column-gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line-strong);font-size:15px;font-weight:600}
+.lsub .lbl2{grid-column:1 / span 2}
+@media(max-width:700px){.lsub{grid-template-columns:repeat(3,minmax(0,1fr))}.lsub .lbl2{grid-column:1 / -1}}
+tr.grp th,tr.grp td{padding-top:14px;font-size:12.5px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;text-align:left;border-bottom:1px solid var(--line-strong)}
+tr.subt td{font-weight:600;border-top:1px solid var(--line-strong)}
 @media(max-width:700px){
-  .lform{grid-template-columns:1fr 1fr}.lform .type{grid-column:1 / -1}.lform .note{grid-column:1 / -1}
+  .lform{grid-template-columns:1fr 1fr}.lform .acts{grid-column:1 / -1}
   .lhead{display:none}
   .lrow{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:2px;padding:10px 0}
   .lrow .lt{grid-column:span 2}.lrow .lmsg,.lrow .lmsg.lmsg2{grid-column:1 / -1;text-align:left}
@@ -255,6 +269,10 @@ tr.flag td.msg{color:var(--warn);font-size:14.5px;text-align:right}
   td{border-bottom:1px solid #999}
   td.sub{color:#000}
   tr.rep td.num{color:#000}
+  .grp-h,tr.grp td,.lsub,.grp-empty{color:#000}
+  tr.grp.debit td,tr.grp.credit td{color:#000;background:none;box-shadow:none;padding-left:0}
+  tr.grp td{border-bottom:1px solid #000}
+  tr.subt td{border-top:1px solid #000;color:#000}
   .type small{color:#000}
 }
 </style>
@@ -315,9 +333,9 @@ tr.flag td.msg{color:var(--warn);font-size:14.5px;text-align:right}
         <label class="f"><span class="lbl">Date</span>
           <span class="datebox"><input type="text" id="lDate" data-testid="loan-date" inputmode="numeric" placeholder="dd-mm-yyyy" autocomplete="off">
           <button type="button" class="cal" data-testid="cal-btn" aria-label="Pick date from calendar" aria-haspopup="dialog" aria-expanded="false" data-for="lDate"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></button></span></label>
-        <label class="f"><span class="lbl">Amount (&#8377;)</span><input type="text" id="lAmount" data-testid="loan-amount" inputmode="decimal" autocomplete="off"></label>
-        <label class="f type"><span class="lbl">Type</span><select id="lType" data-testid="loan-type"><option value="loan">Loan given</option><option value="repayment">Repayment received</option></select></label>
-        <label class="f note"><span class="lbl">Note (optional)</span><input type="text" id="lNote" data-testid="loan-note" autocomplete="off"></label>
+        <label class="f note"><span class="lbl">Particulars (optional)</span><input type="text" id="lNote" data-testid="loan-note" autocomplete="off"></label>
+        <label class="f"><span class="lbl">Debit (&#8377;)</span><input type="text" id="lDebit" data-testid="loan-debit" inputmode="decimal" autocomplete="off"><small class="hint">Loan given</small></label>
+        <label class="f"><span class="lbl">Credit (&#8377;)</span><input type="text" id="lCredit" data-testid="loan-credit" inputmode="decimal" autocomplete="off"><small class="hint">Repayment received</small></label>
         <div class="acts"><button type="button" class="btn primary" id="lAdd" data-testid="add-loan">Add</button><span id="lCancelSlot"></span></div>
       </div>
       <div id="loans"></div>
@@ -446,7 +464,6 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     return y + '-' + p2(mo) + '-' + p2(d);
   }
   function fmt(n) { return Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-  function signed(n) { var r = Math.round(n * 100) / 100; return (r < 0 ? '−' : '') + fmt(n); }
   function parseMoney(t) {
     var s = String(t == null ? '' : t).replace(/[,\s₹]/g, '');
     if (s === '') return null;
@@ -551,7 +568,7 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     if (window.__resetNameUI) window.__resetNameUI();
   }
   var editIdx = null, delIdx = null;
-  var LOAN_ERR_FIELDS = ['lDate', 'lAmount'];
+  var LOAN_ERR_FIELDS = ['lDate', 'lDebit', 'lCredit'];
 
   function sortEntries(p) {
     p.entries = p.entries.map(function (e, k) { return { e: e, k: k }; }).sort(function (a, b) {
@@ -567,7 +584,7 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
   }
   function clearErrs() { LOAN_ERR_FIELDS.forEach(function (id) { setErr(id, ''); }); }
   function resetLoanForm() {
-    $('lDate').value = ''; $('lAmount').value = ''; $('lNote').value = ''; $('lType').value = 'loan';
+    $('lDate').value = ''; $('lDebit').value = ''; $('lCredit').value = ''; $('lNote').value = '';
     clearErrs(); editIdx = null; syncFormMode();
   }
   function syncFormMode() {
@@ -586,15 +603,17 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
       $('loans').innerHTML = '<div class="empty-note">No loans yet. Add the first loan given to this person above.</div>';
       $('loanCount').textContent = ''; return;
     }
-    html = '<div class="lhead"><span>Date</span><span>Entry</span><span class="r">Amount</span><span class="r">Interest</span><span class="r">Total</span><span></span></div>';
+    var LH = '<div class="lhead"><span>Date</span><span>Particulars</span><span class="r">Amount</span><span class="r">Interest</span><span class="r">Total</span><span></span></div>';
+    var G = { debit: { h: '', n: 0, a: 0, i: 0 }, credit: { h: '', n: 0, a: 0, i: 0 } };
     p.entries.forEach(function (e, i) {
-      var r = res.rows[i], isRep = e.type === 'repayment', conf = delIdx === i;
+      var r = res.rows[i], isRep = e.type === 'repayment', conf = delIdx === i, g = G[isRep ? 'credit' : 'debit'];
       var cls = 'lrow' + (isRep ? ' rep' : '') + (editIdx === i ? ' editing' : '') + (conf ? ' confirming' : '');
-      var amt = e.amount == null ? '' : signed(isRep ? -e.amount : e.amount);
+      var amt = e.amount == null ? '' : fmt(e.amount);
       var body;
+      if (r.status === 'ok' || r.status === 'future') { g.a += Math.abs(r.amt); g.i += Math.abs(r.interest || 0); }
       if (r.status === 'ok') {
-        var P = -r.amt, I = -r.interest;
-        body = '<span class="num la">' + signed(P) + '</span><span class="num li">' + signed(I) + '</span><span class="num lc">' + signed(P + I) + '</span>';
+        var P = Math.abs(r.amt), I = Math.abs(r.interest);
+        body = '<span class="num la">' + fmt(P) + '</span><span class="num li">' + fmt(I) + '</span><span class="num lc">' + fmt(P + I) + '</span>';
       } else {
         var msg = r.status === 'future' ? 'Future date, no interest' : r.status === 'empty' ? 'Empty entry' :
           (p.calcDate ? 'Date missing, left out of totals' : 'Enter a valid calculation date');
@@ -603,11 +622,21 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
       var acts = conf ?
         '<span class="lact"><span class="ask">Delete this entry?</span><button type="button" class="btn yes" data-testid="confirm-yes" data-a="yes">Yes, delete</button><button type="button" class="btn no" data-testid="confirm-no" data-a="no">No</button></span>' :
         '<span class="lact"><button type="button" class="btn ghost" data-testid="loan-edit" data-a="edit" aria-label="Edit this entry">Edit</button><button type="button" class="btn ghost danger" data-testid="loan-delete" data-a="del" aria-label="Delete this entry">Delete</button></span>';
-      html += '<div class="' + cls + '" data-testid="loan-row" data-i="' + i + '">' +
+      g.n++;
+      g.h += '<div class="' + cls + '" data-testid="loan-row" data-i="' + i + '">' +
         '<span class="ld">' + (e.date ? esc(isoToDisp(e.date)) : '—') + '</span>' +
-        '<span class="lt" title="' + esc(e.note) + '">' + (isRep ? 'Repayment' : 'Loan') + (e.note ? '<span class="ln">' + esc(e.note) + '</span>' : '') + '</span>' +
+        '<span class="lt" title="' + esc(e.note) + '">' + (e.note ? esc(e.note) : '<span class="ln">' + (isRep ? 'Repayment received' : 'Loan given') + '</span>') + '</span>' +
         body + acts + '</div>';
     });
+    function grpHtml(k, title, none, totLabel) {
+      var g = G[k];
+      var out = '<div data-testid="loan-group-' + k + '"><div class="grp-h ' + k + '">' + title + '</div>';
+      if (!g.n) return out + '<div class="grp-empty">' + none + '</div></div>';
+      return out + LH + g.h + '<div class="lsub" data-testid="loan-subtotal-' + k + '"><span class="lbl2">' + totLabel + '</span>' +
+        '<span class="num"><span data-testid="subtotal-amount">' + fmt(g.a) + '</span></span><span class="num">' + fmt(g.i) + '</span><span class="num">' + fmt(g.a + g.i) + '</span><span></span></div></div>';
+    }
+    html = grpHtml('debit', 'Debit · Loans given', 'No loans given yet.', 'Total debit') +
+      grpHtml('credit', 'Credit · Repayments received', 'No repayments yet.', 'Total credit');
     $('loans').innerHTML = html;
     $('loanCount').textContent = p.entries.length > 1 ? p.entries.length + ' entries' : '';
     var f = $('loans').querySelector('[data-testid="confirm-no"]'); if (f) f.focus();
@@ -624,7 +653,8 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     p.entries.forEach(function (e, i) { shown.push({ e: e, i: i }); });
     var res = computeAll(shown.map(function (x) { return txnFor(x.e); }), s);
     renderLoanList();
-    var rows = '', prows = '', count = 0, maxT = null, plist = [];
+    var RG = { debit: { r: '', p: '', n: 0, a: 0, i: 0 }, credit: { r: '', p: '', n: 0, a: 0, i: 0 } };
+    var count = 0, maxT = null, plist = [];
     shown.forEach(function (x, k) {
       var r = res.rows[k], e = x.e;
       if (r.status === 'empty') return;
@@ -632,25 +662,38 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
       var isRep = e.type === 'repayment';
       var typeCell = '<td class="type">' + (isRep ? 'Repayment' : 'Loan') + (e.note ? '<small>' + esc(e.note) + '</small>' : '') + '</td>';
       var dateCell = '<td class="sub">' + (e.date ? esc(isoToDisp(e.date)) : '—') + '</td>';
-      var cls = isRep ? 'rep' : '';
-      if ((r.status === 'ok' || r.status === 'future') && e.date) plist.push({ date: e.date, isRep: isRep, note: e.note, amt: -r.amt, future: r.status === 'future', k: k });
+      var cls = isRep ? 'rep' : '', g = RG[isRep ? 'credit' : 'debit'];
+      g.n++;
+      if (r.status === 'ok' || r.status === 'future') { g.a += Math.abs(r.amt); g.i += Math.abs(r.interest || 0); }
+      if ((r.status === 'ok' || r.status === 'future') && e.date) plist.push({ date: e.date, isRep: isRep, note: e.note, amt: Math.abs(r.amt), future: r.status === 'future', k: k });
       if (r.status === 'ok') {
-        var P = -r.amt, I = -r.interest;
+        var P = Math.abs(r.amt), I = Math.abs(r.interest);
         var tail = dateCell + typeCell +
-          '<td class="num">' + signed(P) + '</td><td class="num sub">' + (Math.round(r.T * 10) / 10).toFixed(1) + '</td>' +
-          '<td class="num">' + signed(I) + '</td><td class="num">' + signed(P + I) + '</td></tr>';
-        rows += '<tr class="' + cls + '" data-testid="result-row">' + tail;
-        prows += '<tr class="' + cls + '">' + tail;
+          '<td class="num">' + fmt(P) + '</td><td class="num sub">' + (Math.round(r.T * 10) / 10).toFixed(1) + '</td>' +
+          '<td class="num">' + fmt(I) + '</td><td class="num">' + fmt(P + I) + '</td></tr>';
+        g.r += '<tr class="' + cls + '" data-testid="result-row">' + tail;
+        g.p += '<tr class="' + cls + '">' + tail;
         if (e.date && (maxT === null || r.T > maxT)) maxT = r.T;
       } else {
         var msg = r.status === 'future' ? 'Dated after the calculation date, so no interest is added' :
           (p.calcDate ? 'Enter the date for this entry. It is left out of the totals' : 'Enter a valid calculation date');
-        var amtTxt = r.amt ? signed(-r.amt) : '';
+        var amtTxt = r.amt ? fmt(r.amt) : '';
         var ftail = dateCell + typeCell + '<td class="num">' + amtTxt + '</td><td class="msg" colspan="3">' + msg + '</td></tr>';
-        rows += '<tr class="flag ' + cls + '" data-testid="result-row">' + ftail;
-        prows += '<tr class="flag ' + cls + '">' + ftail;
+        g.r += '<tr class="flag ' + cls + '" data-testid="result-row">' + ftail;
+        g.p += '<tr class="flag ' + cls + '">' + ftail;
       }
     });
+    function tblRows(pre, useP) {
+      var out = '';
+      [['debit', 'Debit · Loans given', 'Total debit'], ['credit', 'Credit · Repayments received', 'Total credit']].forEach(function (d) {
+        var g = RG[d[0]]; if (!g.n) return;
+        out += '<tr class="grp ' + d[0] + '" data-testid="' + pre + '-group-' + d[0] + '"><td colspan="6">' + d[1] + '</td></tr>' + (useP ? g.p : g.r) +
+          '<tr class="subt" data-testid="' + pre + '-subtotal-' + d[0] + '"><td colspan="2">' + d[2] + '</td><td class="num"><span data-testid="subtotal-amount">' + fmt(g.a) +
+          '</span></td><td></td><td class="num">' + fmt(g.i) + '</td><td class="num">' + fmt(g.a + g.i) + '</td></tr>';
+      });
+      return out;
+    }
+    var rows = tblRows('result', false), prows = tblRows('print', true);
     $('rTable').innerHTML = count ?
       '<table><thead><tr><th>Date</th><th>Type</th><th class="r">Principal</th><th class="r">Months</th><th class="r">Interest</th><th class="r">Total</th></tr></thead><tbody>' + rows + '</tbody></table>' :
       '<div class="none">Add a loan to see the interest worked out here.</div>';
@@ -686,10 +729,15 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     if (!inc && d.plist && d.plist.length) {
       var pl = d.plist.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : a.k - b.k; });
       list = '<div class="pa-tbl"><table class="pa-plist" data-testid="print-principal-list"><thead><tr><th>Date</th><th>Particulars</th><th class="r">Amount</th></tr></thead><tbody>' +
-        pl.map(function (x) {
-          return '<tr data-testid="print-principal-row"><td>' + esc(isoToDisp(x.date)) + '</td><td>' + (x.isRep ? 'Repayment received' : 'Loan given') +
-            (x.note ? ' <span class="pa-note">' + esc(x.note) + '</span>' : '') + (x.future ? ' <span class="pa-note">(after calculation date)</span>' : '') +
-            '</td><td class="num">' + signed(x.amt) + '</td></tr>';
+        [['debit', 'Debit · Loans given', 'Total debit', false], ['credit', 'Credit · Repayments received', 'Total credit', true]].map(function (d) {
+          var items = pl.filter(function (x) { return x.isRep === d[3]; }); if (!items.length) return '';
+          var sum = 0;
+          return '<tr class="grp ' + d[0] + '" data-testid="print-group-' + d[0] + '"><td colspan="3">' + d[1] + '</td></tr>' + items.map(function (x) {
+            sum += Math.abs(x.amt);
+            return '<tr data-testid="print-principal-row"><td>' + esc(isoToDisp(x.date)) + '</td><td>' + (x.note ? esc(x.note) : '') +
+              (x.future ? (x.note ? ' ' : '') + '<span class="pa-note">(after calculation date)</span>' : '') +
+              '</td><td class="num">' + fmt(x.amt) + '</td></tr>';
+          }).join('') + '<tr class="subt" data-testid="print-subtotal-' + d[0] + '"><td colspan="2">' + d[2] + '</td><td class="num"><span data-testid="subtotal-amount">' + fmt(sum) + '</span></td></tr>';
         }).join('') + '</tbody></table></div>';
     }
     $('printArea').innerHTML =
@@ -1181,12 +1229,16 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     renderResult();
   });
   function submitLoan() {
-    var iso = dispToISO($('lDate').value), amt = parseMoney($('lAmount').value), ok = true;
+    var iso = dispToISO($('lDate').value), ok = true;
+    var dv = parseMoney($('lDebit').value), cv = parseMoney($('lCredit').value);
+    var isRep = dv === null && cv !== null, amt = isRep ? cv : dv;
     setErr('lDate', iso ? '' : ($('lDate').value.trim() ? 'Type the date like 10-02-2026' : 'Enter the date'));
-    setErr('lAmount', amt !== null && !isNaN(amt) && amt > 0 ? '' : (amt === null ? 'Enter the amount' : 'Enter a number above zero'));
-    if (!iso || amt === null || isNaN(amt) || amt <= 0) { (iso ? $('lAmount') : $('lDate')).focus(); return; }
+    var bad = amt !== null && (isNaN(amt) || amt <= 0);
+    setErr('lDebit', amt === null ? 'Enter the amount under Debit or Credit' : (bad && !isRep ? 'Enter a number above zero' : ''));
+    setErr('lCredit', bad && isRep ? 'Enter a number above zero' : '');
+    if (!iso || amt === null || bad) { (iso ? (isRep ? $('lCredit') : $('lDebit')) : $('lDate')).focus(); return; }
     var p = cur();
-    var entry = { date: iso, type: $('lType').value === 'repayment' ? 'repayment' : 'loan', amount: amt, note: $('lNote').value.trim() };
+    var entry = { date: iso, type: isRep ? 'repayment' : 'loan', amount: amt, note: $('lNote').value.trim() };
     if (editIdx !== null && p.entries[editIdx]) p.entries[editIdx] = entry; else p.entries.push(entry);
     sortEntries(p); delIdx = null; save();
     resetLoanForm(); renderResult(); $('lDate').focus();
@@ -1196,7 +1248,8 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     if (ev.key === 'Enter' && ev.target.tagName !== 'BUTTON') { ev.preventDefault(); submitLoan(); }
   });
   $('lDate').addEventListener('input', function () { setErr('lDate', ''); });
-  $('lAmount').addEventListener('input', function () { setErr('lAmount', ''); });
+  $('lDebit').addEventListener('input', function () { setErr('lDebit', ''); setErr('lCredit', ''); if (this.value.trim()) $('lCredit').value = ''; });
+  $('lCredit').addEventListener('input', function () { setErr('lDebit', ''); setErr('lCredit', ''); if (this.value.trim()) $('lDebit').value = ''; });
   $('loanForm').addEventListener('click', function (ev) {
     if (ev.target.closest('#lCancel')) { resetLoanForm(); renderLoanList(); $('lDate').focus(); }
   });
@@ -1205,8 +1258,8 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     var row = b.closest('.lrow'), i = +row.dataset.i, p = cur(), a = b.dataset.a;
     if (a === 'edit') {
       var e = p.entries[i]; delIdx = null; clearErrs(); editIdx = i;
-      $('lDate').value = isoToDisp(e.date); $('lAmount').value = e.amount == null ? '' : numStr(e.amount);
-      $('lType').value = e.type; $('lNote').value = e.note || '';
+      $('lDate').value = isoToDisp(e.date); var av = e.amount == null ? '' : numStr(e.amount);
+      $('lDebit').value = e.type === 'repayment' ? '' : av; $('lCredit').value = e.type === 'repayment' ? av : ''; $('lNote').value = e.note || '';
       syncFormMode(); renderLoanList(); $('lDate').focus();
     } else if (a === 'del') { delIdx = i; renderLoanList(); }
     else if (a === 'no') { delIdx = null; renderLoanList(); }
