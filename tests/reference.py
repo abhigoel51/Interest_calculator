@@ -35,8 +35,6 @@ def compute_row(txn, s):
     cy, cm, cd = (int(p) for p in s["calcDate"].split("-"))
     comp, roi, approx = s["comp"], s["roi"], s["approx"]
     T = (cy - y) * 12 + (cm - m) + (cd - d) / 30
-    if T < 0:
-        return dict(amt=amt, T=T, V=None, W=None, interest=0.0, status="future")
     mod = excel_mod(T, comp)
     U = 1 if mod > approx else 0
     V = excel_rounddown(T / comp) if U else excel_rounddown(T / comp) - 1
@@ -44,7 +42,8 @@ def compute_row(txn, s):
     interest = amt * (1 + roi * comp / 100) ** V * (1 + roi * W / 100) - amt
     if T == 0:
         interest = 0.0  # spec: T = 0 gives interest 0 (removes float dust)
-    return dict(amt=amt, T=T, V=V, W=W, interest=interest, status="ok")
+    # v13: future rows (T < 0) run the same Excel chain; status stays "future" for the UI flag
+    return dict(amt=amt, T=T, V=V, W=W, interest=interest, status="future" if T < 0 else "ok")
 
 
 def compute_all(txns, s):
@@ -125,9 +124,11 @@ CASES = [
     ("comp_12", "comp = 12 months", S("2026-11-01", comp=12),
      [X("2025-11-01", 25000), X("2025-02-10", 25000), X("2026-06-15", 25000)]),
     ("roi_2", "ROI 2 per month", S("2026-11-01", roi=2), [X("2025-06-12", 100000), X("2026-01-01", None, 30000)]),
-    ("future_rows", "Future-dated rows: interest 0, status future",
+    ("future_rows", "Future-dated rows (v13): same Excel chain, real V/W, nonzero interest, status future",
      S("2026-11-01"), [X("2026-02-10", 70000), X("2026-12-15", 5000), X("2027-01-01", None, 9000)]),
-    ("future_same_month_later_day", "Later day in same month is future (T=-0.1)",
+    ("owner_excel_v13", "Owner's Excel: 70000 Dr 2026-02-10 + 7000 Dr 2026-11-25 (future, T=-0.8, interest +70)",
+     S("2026-11-01"), [X("2026-02-10", 70000), X("2026-11-25", 7000)]),
+    ("future_same_month_later_day", "Later day in same month is future (T=-0.1), v13: interest from Excel chain, not 0",
      S("2026-11-01"), [X("2026-11-04", 3000), X("2026-11-01", 3000)]),
     ("missing_dates", "Rows with amount but no date: nodate, excluded from totals",
      S("2026-11-01"), [X("2026-02-10", 70000), X(None, 1000), X("", None, 2500, "no date")]),
@@ -144,7 +145,18 @@ CASES = [
 ]
 
 
+def _check_owner_excel():
+    c = [c for c in CASES if c[0] == "owner_excel_v13"][0]
+    r = compute_all(c[3], c[2])
+    a, b = r["rows"]
+    assert abs(a["interest"] - -7789.6875) < 1e-9 and a["status"] == "ok"
+    assert abs(b["T"] - -0.8) < 1e-9 and b["V"] == 0 and abs(b["W"] - -0.8) < 1e-9
+    assert abs(b["interest"] - 70) < 1e-9 and b["status"] == "future"
+    assert abs(r["interest"] - -7719.6875) < 1e-9 and abs(r["balance"] - -84719.6875) < 1e-9
+
+
 def build():
+    _check_owner_excel()
     out = []
     for name, desc, s, txns in CASES:
         res = compute_all(txns, s)

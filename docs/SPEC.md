@@ -371,3 +371,60 @@ Debit and Credit columns. No amount anywhere in the app or the printout shows a 
   - With no note, the cell is blank. There is no automatic "Loan given" / "Repayment received", because the Debit/Credit section headings already say that.
   - A future-dated entry still shows the muted "(after calculation date)" flag.
 - The on-screen lists and the "Include loan-wise breakdown" table are unchanged.
+
+## v13 changes: future-dated entries use the Excel formula (owner correction, 2026-11-21)
+The owner confirmed that negative interest for future dates was intended in the original Excel, not a bug. The v1 "fix"
+(future rows get 0 interest) is reverted. The calc now matches the Excel for every dated row.
+
+### Calculation
+- `computeRow` no longer short-circuits on `T < 0`. Every dated row runs the same Excel chain:
+  - `mod = T − R·floor(T/R)` (Excel MOD, which takes the divisor's sign);
+  - `U = mod > Approx`;
+  - `V = trunc(T/R)` when U, else `trunc(T/R) − 1` (Excel ROUNDDOWN truncates toward zero);
+  - `W = T − V·R`;
+  - interest = `amt·(1+roi·R/100)^V·(1+roi·W/100) − amt`.
+- `status` stays `"future"` for `T < 0`, so the UI can still flag it, but `V`, `W` and `interest` are the real values.
+- `T === 0` still gives exactly 0 interest. The Excel gives 0 too, up to float dust.
+- The other v1 fix stays: a row with an amount but no date is excluded from totals.
+- **Reference (from the owner's Excel):**
+  - Settings: calc date 01-11-2026, ROI 1.25, R 6, Approx 0.
+  - A debit of 70,000 on 10-02-2026 gives T 8.7, V 1, W 2.7 and interest −7,789.6875.
+  - A debit of 7,000 on 25-11-2026 gives T −0.8, V 0, W −0.8 and interest +70.
+  - Total principal is 77,000 Dr, total interest 7,719.6875 Dr and the amount due 84,719.6875 Dr.
+
+### Display (still no minus signs)
+- **Relative interest:** each counted row has a relative interest `ri = interest` for a credit and `−interest` for a debit.
+  It is ≥ 0 normally and < 0 for a future-dated row, which reduces that entry.
+- **Rows (loan list, result column, "Include loan-wise breakdown" table):**
+  - A future row now shows numbers like an ok row: Principal, Months (the negative T is shown as e.g. "0.8 before", with no minus sign) and Interest.
+  - Its Interest cell reads `less 70.00`, and its Total = principal − |ri|.
+  - A short muted note "after calculation date" sits in the row (Particulars/Type cell). The old messages
+    "Future date, no interest" and "Dated after the calculation date, so no interest is added" are removed.
+- **Section subtotals:** the interest subtotal is the sum of `ri` over the section. If it is negative, it reads `less X`.
+  The Total column subtotal = amount + that sum.
+- **Totals (screen and print):** Total interest shows `fmt(|interest|)`, prefixed with `less ` when the interest's sign is opposite to
+  the principal's sign (e.g. only future loans). The amount due and its label are unchanged (they use the signed balance).
+- **Print history / duplicate check:** unchanged (they store absolute values).
+- **Print default principal list:** unchanged. A future entry keeps its "(after calculation date)" flag.
+- The Months/Period line in print still uses the earliest non-future entry.
+
+### Test hooks (v13)
+- No new testids. A future row in the result column is now a normal `result-row`, not a `flag` row. Its interest cell text starts with `less `.
+
+### v13.1: show negative interest with a minus sign (owner feedback)
+- The owner prefers a minus sign over the word "less". Wherever v13 printed `less X`, the app now prints `−X`, using U+2212 MINUS SIGN.
+  This covers the row interest, section interest subtotals, Total interest on screen and in print.
+- The Months cell of a future row shows `−0.8` instead of `0.8 before`.
+- This is the ONLY place a minus may appear: negative interest and negative months of future-dated entries.
+  Principal amounts, the Total column and the amount due still never carry a minus. v12's "no minus anywhere" rule is narrowed accordingly.
+
+### v13.2: Particulars holds only what the user typed, everywhere (owner feedback)
+- The owner repeated that Particulars must show nothing the app writes on its own. This extends v12.2 from the printout to every view.
+- **Loan list:** the Particulars cell shows only `e.note`, blank otherwise.
+  - The muted "Loan given" / "Repayment received" placeholder is removed.
+  - The muted "after calculation date" note is removed.
+- **Result column / "Include loan-wise breakdown" table:** the Type cell keeps the type word ("Loan" / "Repayment") plus the user's note.
+  The "after calculation date" small note is removed.
+- **Print default principal list:** the "(after calculation date)" flag is removed. The cell is `e.note` or blank.
+- A future-dated row is recognised only by its date and the minus sign on its interest and months (v13.1).
+- The "Particulars" form field placeholder text and the form hints under Debit/Credit are unchanged; they are form labels, not row content.

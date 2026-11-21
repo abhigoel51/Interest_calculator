@@ -61,7 +61,7 @@ function checkCase(c) {
     chk('row' + i + '.amt', r.amt, er.amt, true);
     if (er.status === 'ok' || er.status === 'future') chk('row' + i + '.T', r.T, er.T, true);
     // T = 0 (same day as calc date): interest is 0 regardless of V/W, so V/W are not compared
-    if (er.status === 'ok' && er.T !== 0) {
+    if ((er.status === 'ok' || er.status === 'future') && er.T !== 0) {
       chk('row' + i + '.V', r.V, er.V, true);
       chk('row' + i + '.W', r.W, er.W, true);
     }

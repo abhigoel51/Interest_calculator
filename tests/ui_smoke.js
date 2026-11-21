@@ -242,22 +242,47 @@ async function main() {
       if (rr !== 3) throw new Error('expected 3 result-rows, got ' + rr);
     });
 
-    // c. future-dated loan
-    await run('c. future-dated loan 15-12-2026: interest 0', async () => {
+    // c. future-dated loan (v13: Excel chain applies, interest is nonzero, shown as "\u2212X")
+    // independent Excel formula (not the app's code): debit 5000 on 15-12-2026, calc 01-11-2026, ROI 1.25, R 6, approx 0
+    const xlInterest = (y1, m1, d1, y2, m2, d2, amt, roi, R, approx) => {
+      const T = (y2 - y1) * 12 + (m2 - m1) + (d2 - d1) / 30;
+      const mod = T - R * Math.floor(T / R);
+      const V = mod > approx ? Math.trunc(T / R) : Math.trunc(T / R) - 1;
+      const W = T - V * R;
+      return amt * Math.pow(1 + roi * R / 100, V) * (1 + roi * W / 100) - amt;
+    };
+    // T = -1.4667, V 0, W -1.4667, interest = -5000 * 0.0125 * -1.4667 = +91.6667 on a debit => relative interest -91.6667 ("\u221291.67")
+    const FUT = xlInterest(2026, 12, 15, 2026, 11, 1, -5000, 1.25, 6, 0);
+    if (Math.abs(FUT - 91.6667) > 0.001) throw new Error('test setup: expected future interest 91.6667, got ' + FUT);
+    await run('c. future-dated loan 15-12-2026: interest 91.67 negative, shown as "\u221291.67", months "\u22121.5" (v13.1)', async () => {
       const before = await readTotals();
       await addLoan('15-12-2026', 5000, 'loan');
       const n = await ev(`__rows().length`);
       if (n !== 4) throw new Error('expected 4 rows, got ' + n);
       const after = await readTotals();
-      expectNum('total-interest unchanged', after.interest, before.interest);
-      expectNum('amount-due (+5000 principal only)', after.due, before.due + 5000);
+      // displayed (Dr-side) interest drops by 91.67; amount due = +5000 principal - 91.67
+      expectNum('total-interest includes future row (less 91.67)', after.interest, before.interest - FUT);
+      expectNum('amount-due (+5000 principal, -91.67)', after.due, before.due + 5000 - FUT);
+      const rr = await ev(`document.querySelectorAll('[data-testid="result-row"]').length`);
+      if (rr !== 4) throw new Error('expected 4 result-rows (future row is a normal result-row), got ' + rr);
       const txt = await ev(`Array.from(document.querySelectorAll('[data-testid="result-row"]')).find(r => /15-12-2026/.test(r.textContent)).textContent.replace(/\\s+/g,' ')`);
-      if (!/after|future|not yet/i.test(txt) && !/\b0\.00\b/.test(txt)) throw new Error('future row shows no note/zero interest: ' + txt);
+      if (!/\u221291\.67/.test(txt)) throw new Error('future result-row lacks "\u221291.67": ' + txt);
+      if (/less\s*\d|before/i.test(txt)) throw new Error('future result-row still uses old "less"/"before" wording: ' + txt);
+      if (/after calculation date/i.test(txt)) throw new Error('v13.2: future result-row must NOT contain "after calculation date": ' + txt);
+      const futLt = await ev(`(() => { const r = Array.from(document.querySelectorAll('[data-testid="loan-row"]')).find(r => /15-12-2026/.test(r.textContent)); const l = r && r.querySelector('span.lt'); return l ? l.textContent.trim() : null; })()`);
+      if (futLt !== '') throw new Error('v13.2: future loan-row Particulars (span.lt) should be empty when no note entered, got ' + JSON.stringify(futLt));
+      if (/Future date, no interest|so no interest is added/i.test(txt)) throw new Error('old no-interest message still shown: ' + txt);
+      // v13.1: the only minus-prefixed numbers in the result column are the future row's interest (91.67) and months (1.5)
+      const col = await ev(`Array.from(document.querySelectorAll('[data-testid="result-row"]')).map(r => r.textContent.replace(/\\s+/g,' ')).join(' | ')`);
+      const minuses = (col.replace(/\d{2}-\d{2}-\d{4}/g, '').match(/[\u2212-]\s*[\u20B9]?\s*\d[\d,]*(?:\.\d{1,2})?/g) || []).map(m => m.replace(/[\s\u20B9]/g, '').replace('-', '\u2212')).sort();
+      if (JSON.stringify(minuses) !== JSON.stringify(['\u22121.5', '\u221291.67'])) throw new Error('minus-prefixed numbers in result column should be exactly \u22121.5 and \u221291.67: ' + JSON.stringify(minuses) + ' in ' + col);
+      const tot = await ev(`['total-principal','total-interest','amount-due'].map(t => __txt(t)).join(' | ')`);
+      if (/[\u2212-]\s*[\u20B9]?\s*\d/.test(tot)) throw new Error('minus sign in totals (total interest stays positive here): ' + tot);
     });
 
     // d. edit the 20000 repayment -> 10000
-    await run('d. edit: repayment 20000 -> 10000 (interest 14866.875, row count unchanged)', async () => {
-      // independent value: 15579.375 - 10000 repayment interest (1425/2 = 712.5) = 14866.875; future row adds 0
+    await run('d. edit: repayment 20000 -> 10000 (interest 14866.875 minus 91.67 future, row count unchanged)', async () => {
+      // independent value: 15579.375 - 10000 repayment interest (1425/2 = 712.5) = 14866.875; plus the v13 future row (5000 Dr on 15-12-2026) which reduces interest by 91.6667
       const nBefore = await ev(`__rows().length`);
       await editRowMatching('/20,?000/');
       const f = await formState();
@@ -273,9 +298,9 @@ async function main() {
       if (n !== nBefore) throw new Error(`row count changed ${nBefore} -> ${n}`);
       await assertFormCleared('after update');
       const t = await readTotals();
-      expectNum('total-interest', t.interest, 15579.375 - 712.5);
+      expectNum('total-interest', t.interest, 15579.375 - 712.5 - FUT);
       expectNum('total-principal', t.principal, 135000);
-      expectNum('amount-due', t.due, 135000 + 15579.375 - 712.5);
+      expectNum('amount-due', t.due, 135000 + 15579.375 - 712.5 - FUT);
     });
 
     // e. cancel edit
@@ -329,8 +354,8 @@ async function main() {
       await ev(`__q('confirm-yes').click()`); await settle(); await sleep(200);
       if ((await ev(`__rows().length`)) !== n - 1) throw new Error('row not removed after confirm-yes');
       t = await readTotals();
-      expectNum('amount-due after delete', t.due, before.due - 5000);
-      expectNum('total-interest after delete', t.interest, before.interest);
+      expectNum('amount-due after delete', t.due, before.due - 5000 + FUT);
+      expectNum('total-interest after delete', t.interest, before.interest + FUT);
     });
 
     // h. persistence
@@ -658,7 +683,8 @@ async function main() {
         if (!byDate('01-09-2025').includes('Shop advance')) throw new Error('row missing note: ' + byDate('01-09-2025'));
         const rep = byDate('01-06-2026');
         if (!/2,000\.00/.test(rep) || /[\u2212]|(^|\s)-\d/.test(rep)) throw new Error('repayment row should be positive 2,000.00 with no minus: ' + rep);
-        if (!byDate('15-12-2026').includes('after calculation date')) throw new Error('future row lacks note: ' + byDate('15-12-2026'));
+        if (/after calculation date/i.test(byDate('15-12-2026'))) throw new Error('v13.2: future row must not carry "after calculation date": ' + byDate('15-12-2026'));
+        if (byDate('15-12-2026').replace(/\s+/g, '') !== '15-12-20265,000.00') throw new Error('v13.2: future row without note should have blank Particulars: ' + byDate('15-12-2026'));
         // v12.2: Particulars prints only the user's note; no auto "Loan given"/"Repayment received"
         if (rows.some((x) => /Loan given|Repayment received/.test(x))) throw new Error('auto type label printed in Particulars: ' + JSON.stringify(rows));
         if (byDate('02-03-2024').replace(/\s+/g, '') !== '02-03-2024700.00') throw new Error('row without note should have blank Particulars: ' + byDate('02-03-2024'));
@@ -1030,6 +1056,24 @@ async function main() {
       await ev(`__q('loan-cancel').click(); true`); await settle();
       await assertFormCleared('after cancel edit (y)');
       must((await ev(`__rows().length`)) === 3, 'row count after cancel');
+    });
+
+    await run('z. v13.2 particulars blank: no auto text in loan-row span.lt unless user note', async () => {
+      await reseed();
+      await ev(`__q('menu-more').click(); true`); await settle();
+      await ev(`__q('start-fresh').click(); true`); await settle();
+      await ev(`__q('fresh-confirm').click(); true`); await settle();
+      await ev(`__set(__q('calc-date'), '13-11-2026'); true`); await settle();
+      await addLoan('02-03-2024', 700, 'loan');
+      await addLoan('01-06-2026', 2000, 'repayment');
+      await addLoan('15-12-2026', 5000, 'loan');
+      await addLoan('01-09-2025', 7000, 'loan', 'Shop advance');
+      const lts = await ev(`Array.from(document.querySelectorAll('[data-testid="loan-row"] span.lt')).map(e => e.textContent.trim())`);
+      if (lts.length !== 4) throw new Error('expected 4 span.lt, got ' + JSON.stringify(lts));
+      lts.forEach((t) => {
+        if (/Loan given|Repayment received|after calculation date/i.test(t)) throw new Error('auto text in Particulars: ' + JSON.stringify(lts));
+      });
+      if (lts.filter((t) => t === '').length !== 3 || !lts.includes('Shop advance')) throw new Error('only the user note should show: ' + JSON.stringify(lts));
     });
 
     // i. JS errors and native dialogs

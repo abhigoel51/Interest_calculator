@@ -1037,7 +1037,7 @@
  },
  {
   "name": "future_rows",
-  "description": "Future-dated rows: interest 0, status future",
+  "description": "Future-dated rows (v13): same Excel chain, real V/W, nonzero interest, status future",
   "settings": {
    "calcDate": "2026-11-01",
    "roi": 1.25,
@@ -1077,23 +1077,73 @@
     {
      "amt": -5000.0,
      "T": -1.4666666666666668,
-     "V": null,
-     "W": null,
-     "interest": 0.0,
+     "V": 0,
+     "W": -1.4666666666666668,
+     "interest": 91.66666666666697,
      "status": "future"
     },
     {
      "amt": 9000.0,
      "T": -2.0,
-     "V": null,
-     "W": null,
-     "interest": 0.0,
+     "V": 0,
+     "W": -2.0,
+     "interest": -225.0,
      "status": "future"
     }
    ],
    "principal": -66000.0,
-   "interest": -7789.6875,
-   "balance": -73789.6875,
+   "interest": -7923.020833333333,
+   "balance": -73923.02083333333,
+   "principalSide": "Dr",
+   "interestSide": "Dr",
+   "balanceSide": "Dr"
+  }
+ },
+ {
+  "name": "owner_excel_v13",
+  "description": "Owner's Excel: 70000 Dr 2026-02-10 + 7000 Dr 2026-11-25 (future, T=-0.8, interest +70)",
+  "settings": {
+   "calcDate": "2026-11-01",
+   "roi": 1.25,
+   "comp": 6,
+   "approx": 0
+  },
+  "txns": [
+   {
+    "date": "2026-02-10",
+    "particulars": "",
+    "debit": 70000,
+    "credit": null
+   },
+   {
+    "date": "2026-11-25",
+    "particulars": "",
+    "debit": 7000,
+    "credit": null
+   }
+  ],
+  "expected": {
+   "rows": [
+    {
+     "amt": -70000.0,
+     "T": 8.7,
+     "V": 1,
+     "W": 2.6999999999999993,
+     "interest": -7789.6875,
+     "status": "ok"
+    },
+    {
+     "amt": -7000.0,
+     "T": -0.8,
+     "V": 0,
+     "W": -0.8,
+     "interest": 70.0,
+     "status": "future"
+    }
+   ],
+   "principal": -77000.0,
+   "interest": -7719.6875,
+   "balance": -84719.6875,
    "principalSide": "Dr",
    "interestSide": "Dr",
    "balanceSide": "Dr"
@@ -1101,7 +1151,7 @@
  },
  {
   "name": "future_same_month_later_day",
-  "description": "Later day in same month is future (T=-0.1)",
+  "description": "Later day in same month is future (T=-0.1), v13: interest from Excel chain, not 0",
   "settings": {
    "calcDate": "2026-11-01",
    "roi": 1.25,
@@ -1127,9 +1177,9 @@
     {
      "amt": -3000.0,
      "T": -0.1,
-     "V": null,
-     "W": null,
-     "interest": 0.0,
+     "V": 0,
+     "W": -0.1,
+     "interest": 3.75,
      "status": "future"
     },
     {
@@ -1142,8 +1192,8 @@
     }
    ],
    "principal": -6000.0,
-   "interest": 0.0,
-   "balance": -6000.0,
+   "interest": 3.75,
+   "balance": -5996.25,
    "principalSide": "Dr",
    "interestSide": "Cr",
    "balanceSide": "Dr"

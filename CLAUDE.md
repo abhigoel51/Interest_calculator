@@ -3,21 +3,20 @@
 Interest calculator for a non-technical, elderly user (the owner's father) on a **Windows PC**. It replaces
 the original Excel at `~/Downloads/Intrest_package.xlsx` (sheets `Inputs`, `Print Format`). Never modify that original.
 
-## Status (2026-11-20)
-v12 (Debit/Credit kept apart, no minus signs) is delivered, based on the first real-use feedback. Expect UX tweaks next, not a rewrite.
+## Status (2026-11-21)
+v13 is delivered: future-dated entries use the Excel formula again (negative interest), as the owner confirmed it was intended. v12 (Debit/Credit kept apart, no minus signs) came from the first real-use feedback. Expect UX tweaks next, not a rewrite.
 
 ## Files
 - `app/InterestCalculator.html`: **the product.** One self-contained offline file (vanilla HTML/CSS/JS, no CDN).
   The father double-clicks it, and it opens in Chrome or Edge. The data lives in that browser's localStorage under
   `interestCalculator.v2`.
-- `docs/SPEC.md`: the full spec, written as a version history (v1 → v11) with the `data-testid` contracts. Append a new
+- `docs/SPEC.md`: the full spec, written as a version history (v1 → v13) with the `data-testid` contracts. Append a new
   "vN changes" section for every round of changes rather than rewriting older ones.
-- `tests/reference.py` + `tests/golden.json` + `tests/run_tests.js`: 30 calc cases checked against the HTML's calc engine.
+- `tests/reference.py` + `tests/golden.json` + `tests/run_tests.js`: 31 calc cases checked against the HTML's calc engine.
 - `tests/ui_smoke.js`: headless Chrome over raw CDP (no npm), scenarios a–x. `WAIT_FOR_REBUILD=1` is an opt-in wait.
 - `excel/Intrest_package_fixed.xlsx` (+ `build_fixed.py`): a corrected copy of the original Excel. Its audit fixes:
   - the phantom ₹9,00,000 row in Print Format A9/D9, the #REF! in B82 and the wrong reference in B79;
   - the Interest Amount line landing mid-list when Inputs has a gap;
-  - negative interest for future dates;
   - interest computed for rows with no date.
 - `.claude/launch.json`: `app` serves `app/` on port 8765 for the browser pane. The pane opens file:// URLs as
   static snapshots and silently returns false from native `confirm()`, so preview over http.
@@ -31,9 +30,8 @@ v12 (Debit/Credit kept apart, no minus signs) is delivered, based on the first r
   - `V = trunc(T/R)` if `MOD(T,R) > Approx`, else `trunc(T/R) − 1`.
   - `W = T − V*R`.
   - Interest = `amt*(1+roi*R/100)^V*(1+roi*W/100) − amt`.
-- **Fixes vs the Excel:**
-  - A future-dated entry gets 0 interest but still counts in principal.
-  - A row with an amount but no date is excluded from totals.
+- **Future dates (v13):** no special case, exactly like the Excel. A future-dated entry gets the formula's negative interest (e.g. a ₹7,000 loan dated 25-11-2026 with calc date 01-11-2026 gives +70, which reduces the amount due). On screen it shows as "−70.00" (minus sign, v13.1); months show as "−0.8". No note is added: Particulars shows only what the user typed, on screen and in print (v13.2). Minus appears only here; amounts and the amount due never carry one. The v1 "0 interest" fix was wrong and is reverted.
+- **Only fix vs the Excel:** a row with an amount but no date is excluded from totals.
 - **Reference:** two ₹70,000 loans on 10-02-2026, calc date 01-11-2026, give interest 15,579.375 and amount due 1,55,579.375.
 - The `<script id="calc-engine">` block (`computeRow`, `computeAll`) is what the tests load. Keep it pure, and keep it
   byte-identical unless the calculation itself is meant to change.
@@ -44,7 +42,7 @@ v12 (Debit/Credit kept apart, no minus signs) is delivered, based on the first r
 - **Result column:** a per-loan breakdown plus Total principal, Total interest, and "Amount due from <name>" (plain words, no Dr/Cr).
 - **Dates:** a custom in-app calendar (large, closes on pick). Dates can also be typed as dd-mm-yyyy.
 - **Print (v7):** the default printout shows: name, "interest calculated up to", and the period in months since the first loan.
-  - Then a principal list split into Debit and Credit sections with subtotals (Date | Particulars | Amount, no per-entry interest). Particulars prints only the user's note, blank otherwise (v12.2).
+  - Then a principal list split into Debit and Credit sections with subtotals (Date | Particulars | Amount, no per-entry interest). Particulars shows only the user's note, blank otherwise, everywhere (v12.2, v13.2).
   - Then Total principal, ONE Total interest figure, the amount due and "Printed on".
   - It never prints the rate.
   - Ticking "Include loan-wise breakdown" (not saved) replaces the principal list with the full per-loan table.
@@ -65,7 +63,7 @@ v12 (Debit/Credit kept apart, no minus signs) is delivered, based on the first r
   including the testids. It then fans out to 2–3 parallel Sonnet subagents with non-overlapping files, typically one for
   the app and one for `tests/ui_smoke.js`. The main session then verifies everything itself.
 - **Before calling a change done:**
-  - run `node tests/run_tests.js` (must print 30/30) and `node tests/ui_smoke.js` (must print ALL PASSED);
+  - run `node tests/run_tests.js` (must print 31/31) and `node tests/ui_smoke.js` (must print ALL PASSED);
   - click through the change in the browser pane at 1366px wide;
   - afterwards, clear the pane's localStorage.
 - Python work uses the project venv at `.venv/`, because system Python is externally managed.

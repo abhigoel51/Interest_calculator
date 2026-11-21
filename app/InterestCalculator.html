@@ -417,14 +417,13 @@ function computeRow(txn, settings) {
   if (!cd) return { amt: amt, T: null, V: null, W: null, interest: 0, status: 'nodate' };
   var roi = Number(settings.roi), comp = Number(settings.comp), approx = Number(settings.approx) || 0;
   var T = (cd.y - dt.y) * 12 + (cd.m - dt.m) + (cd.d - dt.d) / 30;
-  if (T < 0) return { amt: amt, T: T, V: 0, W: 0, interest: 0, status: 'future' };
   if (T === 0) return { amt: amt, T: 0, V: 0, W: 0, interest: 0, status: 'ok' };
   var mod = T - comp * Math.floor(T / comp);
   var U = mod > approx ? 1 : 0;
   var V = U ? Math.trunc(T / comp) : Math.trunc(T / comp) - 1;
   var W = T - V * comp;
   var interest = amt * Math.pow(1 + roi * comp / 100, V) * (1 + roi * W / 100) - amt;
-  return { amt: amt, T: T, V: V, W: W, interest: interest, status: 'ok' };
+  return { amt: amt, T: T, V: V, W: W, interest: interest, status: T < 0 ? 'future' : 'ok' };
 }
 function computeAll(txns, settings) {
   var rows = [], principal = 0, interest = 0;
@@ -464,6 +463,10 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     return y + '-' + p2(mo) + '-' + p2(d);
   }
   function fmt(n) { return Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function relInt(r) { return r.amt < 0 ? -r.interest : r.interest; }
+  function lessFmt(v) { return (v < -0.000001 ? '−' : '') + fmt(v); }
+  function monthsTxt(T) { var x = (Math.round(Math.abs(T) * 10) / 10).toFixed(1); return T < 0 ? '−' + x : x; }
+  function totIntTxt(P, I) { return ((P < 0 && I > 0) || (P > 0 && I < 0)) ? '−' + fmt(I) : fmt(I); }
   function parseMoney(t) {
     var s = String(t == null ? '' : t).replace(/[,\s₹]/g, '');
     if (s === '') return null;
@@ -610,12 +613,12 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
       var cls = 'lrow' + (isRep ? ' rep' : '') + (editIdx === i ? ' editing' : '') + (conf ? ' confirming' : '');
       var amt = e.amount == null ? '' : fmt(e.amount);
       var body;
-      if (r.status === 'ok' || r.status === 'future') { g.a += Math.abs(r.amt); g.i += Math.abs(r.interest || 0); }
-      if (r.status === 'ok') {
-        var P = Math.abs(r.amt), I = Math.abs(r.interest);
-        body = '<span class="num la">' + fmt(P) + '</span><span class="num li">' + fmt(I) + '</span><span class="num lc">' + fmt(P + I) + '</span>';
+      if (r.status === 'ok' || r.status === 'future') { g.a += Math.abs(r.amt); g.i += relInt(r); }
+      if (r.status === 'ok' || r.status === 'future') {
+        var P = Math.abs(r.amt), I = relInt(r);
+        body = '<span class="num la">' + fmt(P) + '</span><span class="num li">' + lessFmt(I) + '</span><span class="num lc">' + fmt(P + I) + '</span>';
       } else {
-        var msg = r.status === 'future' ? 'Future date, no interest' : r.status === 'empty' ? 'Empty entry' :
+        var msg = r.status === 'empty' ? 'Empty entry' :
           (p.calcDate ? 'Date missing, left out of totals' : 'Enter a valid calculation date');
         body = '<span class="num la">' + (amt || '—') + '</span><span class="lmsg lmsg2">' + msg + '</span>';
       }
@@ -625,7 +628,7 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
       g.n++;
       g.h += '<div class="' + cls + '" data-testid="loan-row" data-i="' + i + '">' +
         '<span class="ld">' + (e.date ? esc(isoToDisp(e.date)) : '—') + '</span>' +
-        '<span class="lt" title="' + esc(e.note) + '">' + (e.note ? esc(e.note) : '<span class="ln">' + (isRep ? 'Repayment received' : 'Loan given') + '</span>') + '</span>' +
+        '<span class="lt" title="' + esc(e.note) + '">' + (e.note ? esc(e.note) : '') + '</span>' +
         body + acts + '</div>';
     });
     function grpHtml(k, title, none, totLabel) {
@@ -633,7 +636,7 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
       var out = '<div data-testid="loan-group-' + k + '"><div class="grp-h ' + k + '">' + title + '</div>';
       if (!g.n) return out + '<div class="grp-empty">' + none + '</div></div>';
       return out + LH + g.h + '<div class="lsub" data-testid="loan-subtotal-' + k + '"><span class="lbl2">' + totLabel + '</span>' +
-        '<span class="num"><span data-testid="subtotal-amount">' + fmt(g.a) + '</span></span><span class="num">' + fmt(g.i) + '</span><span class="num">' + fmt(g.a + g.i) + '</span><span></span></div></div>';
+        '<span class="num"><span data-testid="subtotal-amount">' + fmt(g.a) + '</span></span><span class="num">' + lessFmt(g.i) + '</span><span class="num">' + fmt(g.a + g.i) + '</span><span></span></div></div>';
     }
     html = grpHtml('debit', 'Debit · Loans given', 'No loans given yet.', 'Total debit') +
       grpHtml('credit', 'Credit · Repayments received', 'No repayments yet.', 'Total credit');
@@ -664,19 +667,18 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
       var dateCell = '<td class="sub">' + (e.date ? esc(isoToDisp(e.date)) : '—') + '</td>';
       var cls = isRep ? 'rep' : '', g = RG[isRep ? 'credit' : 'debit'];
       g.n++;
-      if (r.status === 'ok' || r.status === 'future') { g.a += Math.abs(r.amt); g.i += Math.abs(r.interest || 0); }
+      if (r.status === 'ok' || r.status === 'future') { g.a += Math.abs(r.amt); g.i += relInt(r); }
       if ((r.status === 'ok' || r.status === 'future') && e.date) plist.push({ date: e.date, isRep: isRep, note: e.note, amt: Math.abs(r.amt), future: r.status === 'future', k: k });
-      if (r.status === 'ok') {
-        var P = Math.abs(r.amt), I = Math.abs(r.interest);
+      if (r.status === 'ok' || r.status === 'future') {
+        var P = Math.abs(r.amt), I = relInt(r);
         var tail = dateCell + typeCell +
-          '<td class="num">' + fmt(P) + '</td><td class="num sub">' + (Math.round(r.T * 10) / 10).toFixed(1) + '</td>' +
-          '<td class="num">' + fmt(I) + '</td><td class="num">' + fmt(P + I) + '</td></tr>';
+          '<td class="num">' + fmt(P) + '</td><td class="num sub">' + monthsTxt(r.T) + '</td>' +
+          '<td class="num">' + lessFmt(I) + '</td><td class="num">' + fmt(P + I) + '</td></tr>';
         g.r += '<tr class="' + cls + '" data-testid="result-row">' + tail;
         g.p += '<tr class="' + cls + '">' + tail;
-        if (e.date && (maxT === null || r.T > maxT)) maxT = r.T;
+        if (r.status === 'ok' && e.date && (maxT === null || r.T > maxT)) maxT = r.T;
       } else {
-        var msg = r.status === 'future' ? 'Dated after the calculation date, so no interest is added' :
-          (p.calcDate ? 'Enter the date for this entry. It is left out of the totals' : 'Enter a valid calculation date');
+        var msg = (p.calcDate ? 'Enter the date for this entry. It is left out of the totals' : 'Enter a valid calculation date');
         var amtTxt = r.amt ? fmt(r.amt) : '';
         var ftail = dateCell + typeCell + '<td class="num">' + amtTxt + '</td><td class="msg" colspan="3">' + msg + '</td></tr>';
         g.r += '<tr class="flag ' + cls + '" data-testid="result-row">' + ftail;
@@ -689,7 +691,7 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
         var g = RG[d[0]]; if (!g.n) return;
         out += '<tr class="grp ' + d[0] + '" data-testid="' + pre + '-group-' + d[0] + '"><td colspan="6">' + d[1] + '</td></tr>' + (useP ? g.p : g.r) +
           '<tr class="subt" data-testid="' + pre + '-subtotal-' + d[0] + '"><td colspan="2">' + d[2] + '</td><td class="num"><span data-testid="subtotal-amount">' + fmt(g.a) +
-          '</span></td><td></td><td class="num">' + fmt(g.i) + '</td><td class="num">' + fmt(g.a + g.i) + '</td></tr>';
+          '</span></td><td></td><td class="num">' + lessFmt(g.i) + '</td><td class="num">' + fmt(g.a + g.i) + '</td></tr>';
       });
       return out;
     }
@@ -700,7 +702,7 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     $('rWho').textContent = name || 'Unnamed person';
     $('rMeta').textContent = 'Up to ' + (p.calcDate ? isoToDisp(p.calcDate) : '—') + ' · ' + numStr(p.roi) + '% per month · added to principal every ' + numStr(p.comp) + ' months';
     $('tP').textContent = fmt(res.principal);
-    $('tI').textContent = fmt(res.interest);
+    $('tI').textContent = totIntTxt(res.principal, res.interest);
     $('tD').textContent = fmt(res.balance);
     var who = name || 'this person';
     var b = Math.round(res.balance * 100);
@@ -708,7 +710,7 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
     renderPrint({
       name: name, phone: p.phone.trim(), calc: p.calcDate ? isoToDisp(p.calcDate) : '—',
       months: maxT === null ? '—' : String(Math.round(maxT * 10) / 10).replace(/\.0$/, ''),
-      P: fmt(res.principal), I: fmt(res.interest), D: fmt(res.balance), label: $('dueLabel').textContent,
+      P: fmt(res.principal), I: totIntTxt(res.principal, res.interest), D: fmt(res.balance), label: $('dueLabel').textContent,
       rows: prows, plist: plist,
       raw: { personId: p.id, name: name, phone: p.phone.trim(), calcDate: p.calcDate || '', periodMonths: maxT === null ? null : Math.round(maxT * 10) / 10,
         principal: Math.abs(res.principal), interest: Math.abs(res.interest), amountDue: Math.abs(res.balance),
@@ -735,7 +737,6 @@ if (typeof module !== 'undefined') module.exports = { computeRow, computeAll };
           return '<tr class="grp ' + d[0] + '" data-testid="print-group-' + d[0] + '"><td colspan="3">' + d[1] + '</td></tr>' + items.map(function (x) {
             sum += Math.abs(x.amt);
             return '<tr data-testid="print-principal-row"><td>' + esc(isoToDisp(x.date)) + '</td><td>' + (x.note ? esc(x.note) : '') +
-              (x.future ? (x.note ? ' ' : '') + '<span class="pa-note">(after calculation date)</span>' : '') +
               '</td><td class="num">' + fmt(x.amt) + '</td></tr>';
           }).join('') + '<tr class="subt" data-testid="print-subtotal-' + d[0] + '"><td colspan="2">' + d[2] + '</td><td class="num"><span data-testid="subtotal-amount">' + fmt(sum) + '</span></td></tr>';
         }).join('') + '</tbody></table></div>';
